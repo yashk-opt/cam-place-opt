@@ -4,10 +4,21 @@ import pathlib
 from datetime import datetime
 from collections import Counter
 
+from typing import Optional
+
 
 class Scene:
     def __init__(self, filepath, obj_type="mesh"):
+        """
+        Initialize a Scene object.
 
+        Parameters:
+        - filepath (str): Path to the file containing the scene data.
+        - obj_type (str, optional): Type of object to initialize ('mesh' by default).
+
+        Returns:
+        None
+        """
         self.init_object = obj_type
         if self.init_object == "mesh":
             self.mesh = o3d.io.read_triangle_mesh(filepath, True)
@@ -19,14 +30,30 @@ class Scene:
         self.voxel_grid = None
         self.voxel_grid_dim = None
         self.free_space_points = None
+        self.voxel_tensor = None
 
         # TODO: There might be free space points beyond walls. One way to remove some of them would be to find
         #  the minimum bounding box (maybe convex hull) and pre-process to remove the free space points out of that
         #  bounding box
 
+        self.pcd_center = None
+        self.mesh_center = None
+        self.voxel_size = None
+
         pass
 
     def initialize_objects(self, voxel_size=30):
+        """
+        Initializes objects based on the specified object type ('mesh' by default).
+        Converts the mesh object to a point cloud, voxel grid, calculates voxel grid dimension, and finds free space
+        points.
+
+        Parameters:
+        - voxel_size (float, optional): Size of the voxels in the voxel grid (default is 30).
+
+        Returns:
+        None
+        """
 
         if self.init_object == "mesh":
             try:
@@ -65,8 +92,19 @@ class Scene:
 
         return new_mesh
 
-    def convert_mesh_pointcloud(self, filesave=False, filename=None, filepath=None):
-        """Converts mesh object to pointcloud and saves it, if required."""
+    def convert_mesh_pointcloud(self, filesave=False, filename: Optional[str] = None, filepath: Optional[str] = None):
+        """
+        Converts mesh object to point cloud and saves it, if required.
+
+        Parameters:
+        - filesave (bool, optional): Flag indicating whether to save the point cloud (default is False).
+        - filename (str, optional): Name of the file to save the point cloud (used if filesave is True).
+        - filepath (str, optional): Path to the directory where the point cloud file will be saved (used if filesave is
+        True).
+
+        Returns:
+        o3d.geometry.PointCloud: Converted point cloud object.
+        """
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = self.mesh.vertices
@@ -85,33 +123,58 @@ class Scene:
         return pcd
 
     def convert_mesh_voxels(self, voxel_size, filesave=False, filename=None, filepath=None):
-        """Converts mesh object to pointcloud and saves it, if required.
-        filename is 'pointcloud_{datetime}' if filename is set to 'auto'.
-        file is stored in the data folder if filepath set to auto.
-        Assume first three columns are points, last three are normals.
-        If colors_present is set to True, then middle three are taken as colors"""
+        """
+        Converts mesh object to voxel grid and saves it if required.
+
+        Parameters:
+        - voxel_size (float): Size of the voxels in the grid.
+        - filesave (bool, optional): Flag indicating whether to save the voxel grid (default is False).
+        - filename (str or None, optional): Name of the file to save the voxel grid (used if filesave is True).
+            If set to 'auto', the filename will be 'pointcloud_{datetime}'.
+        - filepath (str or None, optional): Path to the directory where the voxel grid file will be saved (used if
+        filesave is True).
+            If set to 'auto', the file is stored in the data folder.
+
+        Returns:
+        o3d.geometry.VoxelGrid: Converted voxel grid object.
+        """
 
         voxel_grid = o3d.geometry.VoxelGrid.create_from_triangle_mesh(self.mesh, voxel_size=voxel_size)
         voxels_all = voxel_grid.get_voxels()
         self.voxel_size = voxel_size
-        self._save_object(voxels_all, filesave, filename, filepath)
+
+        if filesave is True:
+            self._save_object(voxels_all, filesave, filename, filepath)
 
         return voxel_grid
 
-    def find_voxel_centers(self, negative_grid=False):
-        """Provides coordinates of the voxel_grid. If negative_grid is True, then it will find voxel
-        centres of the free space"""
+    def find_voxel_centers(self, negative_grid=False, save_voxel_tensor=True):
+        """
+        Provides coordinates of the voxel grid. If negative_grid is True, then it will find voxel centers of the free
+        space.
+
+        Parameters:
+        - negative_grid (bool, optional): Flag indicating whether to find voxel centers of the free space (default is
+        False).
+
+        Returns:
+        numpy.ndarray: Array containing coordinates of the voxel centers.
+        """
 
         voxels_all = self.voxel_grid.get_voxels()
         voxel_size = self.voxel_grid.voxel_size
         voxel_tensor = np.zeros(tuple(self.voxel_grid_dim))
 
+        for voxel in voxels_all:
+            voxel_tensor[tuple(voxel.grid_index)] = 1
+
+        if save_voxel_tensor is True:
+            self.voxel_tensor = voxel_tensor
+
         if negative_grid is False:
-            voxel_centers = [voxel.get_voxel_center_coordinate(voxel.grid_index) for voxel in voxels_all]
+            voxel_centers = np.array([voxel.get_voxel_center_coordinate(voxel.grid_index) for voxel in voxels_all])
 
         else:
-            for voxel in voxels_all:
-                voxel_tensor[tuple(voxel.grid_index)] = 1
 
             negative_grid_indices = list(zip(*np.where(voxel_tensor == 0)))
 
@@ -126,7 +189,6 @@ class Scene:
 
                 else:
                     break
-
 
             voxel_origin = voxel_center_1 - voxel_size * voxel_index_1
             assert max(voxel_origin - voxel_center_2 + voxel_size * voxel_index_2) < 0.001, "origin calculation error"
@@ -143,12 +205,33 @@ class Scene:
         return np.max(index_array, axis=0) + 1
 
     def calculate_center(self):
+        """
+        Calculates the center of the point cloud and assigns it to the attributes pcd_center and mesh_center.
+
+        Parameters:
+        None
+
+        Returns:
+        None
+        """
         self.pcd_center = np.mean(self.pcd.points, axis=0)
         self.mesh_center = self.pcd_center
 
     @staticmethod
     def _save_object(obj, filesave=False, filename=None, filepath=None):
+        """
+        Saves the given object to a file if filesave is True.
 
+        Parameters:
+        - obj: The object to be saved.
+        - filesave (bool, optional): Flag indicating whether to save the object (default is False).
+        - filename (str or None, optional): Name of the file to save the object (used if filesave is True).
+        - filepath (str or None, optional): Path to the directory where the object file will be saved (used if filesave
+        is True).
+
+        Returns:
+        None
+        """
         if filesave is True:
             np.savetxt(f'{filepath}/{filename}', obj)
         return
