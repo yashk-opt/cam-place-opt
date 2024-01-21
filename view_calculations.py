@@ -5,14 +5,25 @@ from numba import jit
 
 
 def calculate_camera_view(scene, camera):
-    """returns set of free space points which are covered by viewing frustum"""
+    """
+        Returns free space points which are covered by the viewing frustum of the camera and unobstructed by the scene
 
+        Parameters:
+        - scene (Scene.scene): This is a scene object. It should have the free space points calculated and must have a
+        triangle mesh to work with
+        - camera (Camera.camera): This is a camera object, it has a field of view and infinite depth.
+
+        Returns:
+        numpy.ndarray: The 2D array of free space points which are viewable by the camera, where each row is a 3D
+        vector.
+    """
     view = o3d.t.geometry.RaycastingScene()
     view.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(scene.mesh))
 
+    # Extract direction vectors from eye to each free_space_points
     free_space_eye_dir = scene.free_space_points - camera.eye
-    # free_space_eye_dir = np.array([camera.center - camera.eye, camera.center - camera.eye])
 
+    # Calculate normal vectors to the horizontal and vertical planes
     hor_normal_unit_dir = (np.cross(camera.hor_1_pos - camera.eye, camera.hor_2_pos - camera.eye)
                            / np.linalg.norm(np.cross(camera.hor_1_pos - camera.eye, camera.hor_2_pos - camera.eye)))
     ver_normal_unit_dir = (np.cross(camera.ver_1_pos - camera.eye, camera.ver_2_pos - camera.eye)
@@ -20,11 +31,13 @@ def calculate_camera_view(scene, camera):
 
     # free_space_eye_unit = free_space_eye_dir / np.linalg.norm(free_space_eye_dir, axis=1)[:, np.newaxis]
 
+    # Calculate component of free space vector on the horizontal and vertical planes
     free_space_eye_hor = (free_space_eye_dir
                           - np.dot(free_space_eye_dir, hor_normal_unit_dir)[:, np.newaxis] * hor_normal_unit_dir)
     free_space_eye_ver = (free_space_eye_dir
                           - np.dot(free_space_eye_dir, ver_normal_unit_dir)[:, np.newaxis] * ver_normal_unit_dir)
 
+    # Check if component of free space vector on the horizontal and vertical planes is in the viewing frustum
     check_ver = np.array(check_points_between_acute_angles(free_space_eye_ver,
                                                            camera.ver_1_pos - camera.eye,
                                                            camera.ver_2_pos - camera.eye))
@@ -37,7 +50,7 @@ def calculate_camera_view(scene, camera):
     free_space_frustum_indices = np.where(free_space_check == 1)[0]
 
     # Subset the free space points which are covered by the viewing frustum
-    frustum_scene_points_eye = free_space_eye_dir[free_space_check == 1]
+    frustum_scene_points_eye = free_space_eye_dir[free_space_frustum_indices]
 
     # Use raycasting on the subset of free space points to figure out how far these points are before hitting the scene
     camera_eyes = np.tile(camera.eye, (len(frustum_scene_points_eye), 1))
@@ -51,7 +64,8 @@ def calculate_camera_view(scene, camera):
 
     # If the length of the free space points from the eye is less than the length of the hit points from the eye,
     # than those free points are visible
-    return (frustum_scene_points_eye + camera.eye)[frustum_space_collisions_distance_vector > 1]
+    # return (frustum_scene_points_eye + camera.eye)[frustum_space_collisions_distance_vector > 1]
+    return scene.free_space_points[free_space_frustum_indices[frustum_space_collisions_distance_vector > 1]]
 
 
 def find_3d_line_plane_intersection(line_point_0, line_point_1, plane_point, plane_normal, epsilon=1e-6):
@@ -82,6 +96,19 @@ def find_3d_line_plane_intersection(line_point_0, line_point_1, plane_point, pla
 
 @jit(nopython=True)
 def check_points_between_acute_angles(array_points, vec_1_dir, vec_2_dir):
+    """
+        Check if a point is between the acute angle formed by the two vectors.
+
+        Parameters:
+        - array_points (numpy.ndarray): 2-D array where each row represents a vector to be checked
+        - vec_1_dir (numpy.ndarray): Direction of the first vector.
+        - vec_2_dir (numpy.ndarray): Direction of the second vector.
+        - between_check (numpy.ndarray): Direction of the point to be checked.
+
+        Returns:
+        list: List of True or False based on whether the corresponding point is between the vectors
+        forming an acute angle.
+    """
     point_between = []
 
     for point in array_points:
