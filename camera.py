@@ -135,7 +135,13 @@ class Camera:
         None
         """
         self.corner_11_pos = self.hor_1_pos + self.ver_1_pos - self.center
-        self.corner_12_pos = self.hor_1_pos + self.ver_2_pos - self.center
-        self.corner_21_pos = self.hor_2_pos + self.ver_1_pos - self.center
-        self.corner_22_pos = self.hor_2_pos + self.ver_2_pos - self.center
+        self.corner_11_pos = self.corner_11_pos / np.linalg.norm(self.corner_11_pos) * 2
 
+        self.corner_12_pos = self.hor_1_pos + self.ver_2_pos - self.center
+        self.corner_12_pos = self.corner_12_pos / np.linalg.norm(self.corner_12_pos) * 2
+
+        self.corner_21_pos = self.hor_2_pos + self.ver_1_pos - self.center
+        self.corner_21_pos = self.corner_21_pos / np.linalg.norm(self.corner_21_pos) * 2
+
+        self.corner_22_pos = self.hor_2_pos + self.ver_2_pos - self.center
+        self.corner_22_pos = self.corner_22_pos / np.linalg.norm(self.corner_22_pos) * 2

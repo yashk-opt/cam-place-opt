@@ -71,7 +71,7 @@ class Scene:
                 print("voxel_grid not implemented")
 
             try:
-                self.voxel_grid_dim = self._voxel_grid_dim()
+                self.voxel_grid_dim = self.calc_voxel_grid_dim()
                 print("voxel_grid_dimension calculated")
 
             except:
@@ -198,7 +198,7 @@ class Scene:
 
         return voxel_centers
 
-    def _voxel_grid_dim(self):
+    def calc_voxel_grid_dim(self):
 
         voxels_all = self.voxel_grid.get_voxels()
         index_array = np.array([voxel.grid_index for voxel in voxels_all])
@@ -216,6 +216,12 @@ class Scene:
         """
         self.pcd_center = np.mean(self.pcd.points, axis=0)
         self.mesh_center = self.pcd_center
+
+    def voxel_tensor_point_to_coordinate(self, tensor_position):
+        return self.voxel_grid.origin + np.array(tensor_position) * self.voxel_grid.voxel_size
+
+    def find_free_space_boundary(self):
+        pass
 
     @staticmethod
     def _save_object(obj, filesave=False, filename=None, filepath=None):

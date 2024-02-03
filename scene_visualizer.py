@@ -1,10 +1,6 @@
-import numpy as np
 import open3d as o3d
-import time
-from scene import Scene
+
 import numpy as np
-from camera import Camera
-from view_calculations import calculate_camera_view
 
 
 def calculate_zy_rotation_for_arrow(vec):
@@ -24,35 +20,6 @@ def calculate_zy_rotation_for_arrow(vec):
                     [-np.sin(beta), 0, np.cos(beta)]
                 ])
     return Rz, Ry
-
-
-def get_arrow(end, origin=np.array([0, 0, 0]), scale=1):
-
-    assert not np.all(end == origin), "start and end point are same"
-    vec = end - origin
-    size = np.sqrt(np.sum(vec**2))
-
-    Rz, Ry = calculate_zy_rotation_for_arrow(vec)
-    mesh = o3d.geometry.TriangleMesh.create_arrow(cone_radius=size/17.5 * scale,
-                                                  cone_height=size*0.2 * scale,
-                                                  cylinder_radius=size/30 * scale,
-                                                  cylinder_height=size*(1 - 0.2*scale))
-    mesh.rotate(Ry, center=np.array([0, 0, 0]))
-    mesh.rotate(Rz, center=np.array([0, 0, 0]))
-    mesh.translate(origin)
-    return mesh
-
-
-def create_coordinate_axes_mesh(origin, dir_x=np.array([1, 0, 0]), dir_y=np.array([0, 1, 0]), dir_z=np.array([0, 0, 1])):
-
-    arrow_x = get_arrow(origin + dir_x)
-    arrow_x.paint_uniform_color(np.array([1, 0, 0]))
-    arrow_y = get_arrow(origin + dir_y)
-    arrow_y.paint_uniform_color(np.array([0, 1, 0]))
-    arrow_z = get_arrow(origin + dir_z)
-    arrow_z.paint_uniform_color(np.array([0, 0, 1]))
-
-    return arrow_x, arrow_y, arrow_z
 
 
 def visualize_list(scene_list, **kwargs):
@@ -83,6 +50,7 @@ def create_voxels_subset(voxel_grid, object_list, voxel_size=None, object_type="
         "indian_red": np.array([205, 92, 92])/255,
         "spring_green": np.array([0, 255, 127])/255,
         "slate_blue": np.array([106, 90, 205])/255,
+        "black": np.array([0, 0, 0])/255,
     }
     color = color_dict[kwargs.get("color", "dark_orchid")]
 

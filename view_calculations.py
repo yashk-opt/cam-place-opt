@@ -155,7 +155,10 @@ def angle_degrees(vec_1_dir, vec_2_dir):
     Returns:
     float: The angle in degrees between the two vectors.
     """
-    return np.arccos(vec_1_dir @ vec_2_dir / np.linalg.norm(vec_1_dir) / np.linalg.norm(vec_2_dir)) * 180 / np.pi
+    try:
+        return np.arccos(vec_1_dir @ vec_2_dir / np.linalg.norm(vec_1_dir) / np.linalg.norm(vec_2_dir)) * 180 / np.pi
+    except:
+        return 0
 
 
 @jit(nopython=True)
@@ -177,3 +180,7 @@ def are_arrays_parallel(vec_1_dir, vec_2_dir):
     # Check if the cross product is zero
     cross_product = np.cross(vec_1_dir, vec_2_dir)
     return np.allclose(cross_product, np.zeros_like(cross_product))
+
+
+def delete_row_if_exists(array_2d, check_row, tolerance=10**-4):
+    return array_2d[~np.all(np.isclose(array_2d, check_row, atol=tolerance), axis=1)]
