@@ -9,7 +9,7 @@ from camera import Camera
 from tqdm import tqdm
 import ast
 from scene_visualizer import create_voxels_subset, visualize_list
-from custom_objects import create_coordinate_axes_mesh
+from custom_objects import create_coordinate_axes_mesh, get_arrow
 import logging
 import warnings
 import sys
@@ -54,6 +54,7 @@ class MILPModel:
         self.yv_indexset = None
 
         self.viewable_points_pa = None
+        self.bounding_frustum_pa_c = None
         self.x_pa_solve = None
 
         pass
@@ -176,17 +177,33 @@ class MILPModel:
                            if (var.varName.startswith("x") and var.X == 1)}
 
         viewable_points_pa = dict()
+        bounding_frustum_pa_c = dict()
         for s in self.x_pa_solve.keys():
             cam = Camera()
             cam_center = tuple(np.array(s[:3]) + np.array(s[-3:]))
             cam.set_params(fov_deg=90, center=cam_center, eye=s[:3], width_px=640, height_px=480, up=(0, 1, 0))
             cam.calculate_bounding_frustum()
             viewable_points_pa[s] = calculate_camera_view(self.scene_data, cam)
+            bounding_frustum_pa_c[s] = {
+                "c11_unit_dir": cam.corner_11_dir,
+                "c12_unit_dir": cam.corner_12_dir,
+                "c21_unit_dir": cam.corner_21_dir,
+                "c22_unit_dir": cam.corner_22_dir,
+                "h1_unit_dir": cam.hor_1_dir,
+                "h2_unit_dir": cam.hor_2_dir,
+                "v1_unit_dir": cam.ver_1_dir,
+                "v2_unit_dir": cam.ver_2_dir,
+            }
 
+        self.bounding_frustum_pa_c = bounding_frustum_pa_c
         self.viewable_points_pa = viewable_points_pa
 
-    def visualize(self, view_solution=True, view_axes=True, view_invisible_points=True):
+    def visualize(self, view_solution=True, view_axes=True, view_invisible_points=True, cameras_all=True,
+                  camera_num=[1]):
         """ Visualize the solution obtained """
+
+        if cameras_all is True:
+            camera_num = list(range(1, len(self.x_pa_solve) + 1))
 
         view_list = [self.scene_data.mesh]
 
@@ -198,20 +215,33 @@ class MILPModel:
             view_list.append(unviewable_points)
 
         if view_solution is True:
-            for s in self.x_pa_solve.keys():
+            for i, s in enumerate(self.x_pa_solve.keys()):
+                if i + 1 in camera_num:
+                    camera_position = create_voxels_subset(self.scene_data.voxel_grid,
+                                                           np.array(s[:3]).reshape(1, -1),
+                                                           voxel_size=self.scene_data.voxel_size,
+                                                           object_type="point", color="black")
 
-                camera_position = create_voxels_subset(self.scene_data.voxel_grid,
-                                                       np.array(s[:3]).reshape(1, -1),
-                                                       voxel_size=self.scene_data.voxel_size,
-                                                       object_type="point", color="black")
+                    view_list.append(camera_position)
 
-                view_list.append(camera_position)
+                    viewable_points = create_voxels_subset(self.scene_data.voxel_grid,
+                                                           self.viewable_points_pa[s],
+                                                           voxel_size= self.scene_data.voxel_size / 4,
+                                                           object_type="point", color="deep_pink")
+                    view_list.append(viewable_points)
 
-                viewable_points = create_voxels_subset(self.scene_data.voxel_grid,
-                                                       self.viewable_points_pa[s],
-                                                       voxel_size= self.scene_data.voxel_size / 4,
-                                                       object_type="point", color="deep_pink")
-                view_list.append(viewable_points)
+                    for key in self.bounding_frustum_pa_c[s].keys():
+                        # Creating arrows which are twice the size of a voxel
+                        arrow = get_arrow(np.array(s[:3]) + 2 * self.bounding_frustum_pa_c[s][key], np.array(s[:3]))
+                        if key.startswith("c"):
+                            arrow.paint_uniform_color(np.array([0, 0, 0]))
+                        elif key.startswith("h"):
+                            arrow.paint_uniform_color(np.array([1, 0, 0]))
+                        elif key.startswith("v"):
+                            arrow.paint_uniform_color(np.array([0, 1, 0]))
+                        else:
+                            pass
+                        view_list.append(arrow)
 
         if view_axes is True:
             axes = create_coordinate_axes_mesh(np.array([0, 0, 0]))
