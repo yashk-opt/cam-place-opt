@@ -184,16 +184,7 @@ class MILPModel:
             cam.set_params(fov_deg=90, center=cam_center, eye=s[:3], width_px=640, height_px=480, up=(0, 1, 0))
             cam.calculate_bounding_frustum()
             viewable_points_pa[s] = calculate_camera_view(self.scene_data, cam)
-            bounding_frustum_pa_c[s] = {
-                "c11_unit_dir": cam.corner_11_dir,
-                "c12_unit_dir": cam.corner_12_dir,
-                "c21_unit_dir": cam.corner_21_dir,
-                "c22_unit_dir": cam.corner_22_dir,
-                "h1_unit_dir": cam.hor_1_dir,
-                "h2_unit_dir": cam.hor_2_dir,
-                "v1_unit_dir": cam.ver_1_dir,
-                "v2_unit_dir": cam.ver_2_dir,
-            }
+            bounding_frustum_pa_c[s] = cam.bounding_frustum_dict
 
         self.bounding_frustum_pa_c = bounding_frustum_pa_c
         self.viewable_points_pa = viewable_points_pa
