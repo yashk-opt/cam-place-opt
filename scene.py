@@ -220,7 +220,38 @@ class Scene:
     def voxel_tensor_point_to_coordinate(self, tensor_position):
         return self.voxel_grid.origin + np.array(tensor_position) * self.voxel_grid.voxel_size
 
-    def find_free_space_boundary(self):
+    def find_boundary_cubes(self):
+        shape = self.voxel_tensor.shape
+
+        # Create a boolean mask indicating which cubes are on the boundary
+        mask = np.zeros(shape, dtype=bool)
+        mask[[0, -1], :, :] = True
+        mask[:, [0, -1], :] = True
+        mask[:, :, [0, -1]] = True
+
+        # Use the boolean mask to find the indices of boundary cubes
+        boundary_cubes = np.transpose(np.nonzero(mask))
+        return boundary_cubes
+
+    def remove_free_space_boundary(self):
+
+        boundary_cubes = self.find_boundary_cubes()
+        removable_space = self.voxel_tensor_point_to_coordinate(boundary_cubes)
+
+        # Define a tolerance for closeness
+        tolerance = 1e-5 * self.voxel_size
+
+        # Create a boolean mask indicating rows in a that are nearly close to rows in b
+        mask = np.any(np.all(np.isclose(self.free_space_points[:, None, :], removable_space,
+                                        atol=tolerance), axis=2), axis=1)
+
+        # Below command is with zero tolerance
+        # mask = np.all(self.free_space_points[:, None, :] == removable_space, axis=2)
+
+        # Invert the mask to get rows in a that don't match closely with any rows in b
+        self.free_space_points = self.free_space_points[~mask]
+
+    def remove_free_space_intersection_points(self):
         pass
 
     @staticmethod
