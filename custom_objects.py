@@ -1,11 +1,11 @@
 import open3d as o3d
 import numpy as np
 import copy
-from scene_visualizer import calculate_zy_rotation_for_arrow
+from scene_visualizer import calculate_zy_rotation_for_arrow, visualize_list
 
 
 def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, wall_width=1, wall_normal="x",
-                       wall_slices=1, seed=42, random_range=0.1):
+                       wall_slices=1, seed=42, random_range=0.2):
     room = o3d.geometry.TriangleMesh.create_box(width=width, height=height, depth=depth)
     vertices = np.array(room.vertices)
     center = room.get_center()
