@@ -57,77 +57,7 @@ class Camera:
         self.hor_1_dir = None
         self.hor_2_dir = None
 
-    def set_params2(self, fov_deg=90, center=(0, 0, 0), eye=(1, 1, 1), width_px=640, height_px=480, up=(0, 1, 0)):
-        """
-        Sets the parameters for the Camera object.
-
-        Parameters:
-        - fov_deg (float, optional): Horizontal field of view in degrees (default is 90).
-        - center (tuple or list, optional): Camera center coordinates (default is (0, 0, 0)).
-        - eye (tuple or list, optional): Camera eye coordinates (default is (1, 1, 1)).
-        - width_px (int, optional): Width of the image in pixels (default is 640).
-        - height_px (int, optional): Height of the image in pixels (default is 480).
-        - up (tuple or list, optional): Up vector of the camera (default is (0, 1, 0)).
-
-        Returns:
-        None
-        """
-        self.fov_hor_deg = fov_deg
-        self.center = np.array(center)
-        self.eye = np.array(eye)
-        self.width_px = width_px
-        self.height_px = height_px
-        self.up = np.array(up)
-
-        assert are_arrays_parallel(self.up, self.center - self.eye) is False, ("up vector parallel to "
-                                                                               "eye-center direction")
-
-        # Calculate horizontal cross-hairs
-        hor_2_center_dir = -np.cross(self.center - self.eye, self.up)
-        hor_1_center_dir = -hor_2_center_dir
-
-        center_eye_length = np.linalg.norm(self.center - self.eye)
-        hor_12_center_length = center_eye_length * np.tan(self.fov_hor_deg / 2 * np.pi / 180)
-
-        hor_12_center_dir_multiplier = hor_12_center_length / np.linalg.norm(hor_1_center_dir)
-
-        self.hor_1_pos = self.center + (hor_12_center_dir_multiplier * hor_1_center_dir)
-        self.hor_2_pos = self.center + (hor_12_center_dir_multiplier * hor_2_center_dir)
-
-        hor_length = np.linalg.norm(self.hor_1_pos - self.hor_2_pos)
-
-        # Calculate vertical cross-hairs
-        ver_length = self.height_px / self.width_px * hor_length
-
-        self.fov_ver_deg = (
-                (180 / np.pi)
-                * (2 * np.arctan(ver_length / hor_length
-                                 * np.tan(self.fov_hor_deg / 2 * np.pi / 180)
-                                 )
-                   )
-        )
-
-        ver_2_center_angled_dir = -np.cross(self.center - self.eye, self.hor_1_pos - self.center)
-        ver_1_center_angled_dir = -ver_2_center_angled_dir
-
-        # center_eye_length = np.linalg.norm(self.center - self.eye)
-        ver_12_center_length = center_eye_length * np.tan(self.fov_ver_deg / 2 * np.pi / 180)
-
-        ver_1_center_angled_dir_multiplier = ver_12_center_length / np.linalg.norm(ver_1_center_angled_dir)
-        ver_2_center_angled_dir_multiplier = ver_12_center_length / np.linalg.norm(ver_2_center_angled_dir)
-
-        ver_1_angled_pos = self.center + (ver_1_center_angled_dir_multiplier * ver_1_center_angled_dir)
-        ver_2_angled_pos = self.center + (ver_2_center_angled_dir_multiplier * ver_2_center_angled_dir)
-
-        self.ver_1_pos = find_3d_line_plane_intersection(self.eye,
-                                                         ver_1_angled_pos,
-                                                         self.center,
-                                                         np.cross(self.hor_1_pos - self.center, self.up))
-
-        self.ver_2_pos = find_3d_line_plane_intersection(self.eye,
-                                                         ver_2_angled_pos,
-                                                         self.center,
-                                                         np.cross(self.hor_2_pos - self.center, self.up))
+        self.bounding_frustum_dict = None
 
     def set_params(self, fov_deg=90, center=(0, 0, 0), eye=(1, 1, 1), width_px=640, height_px=480, up=(0, 1, 0)):
         """
@@ -169,7 +99,8 @@ class Camera:
         hor_length = np.linalg.norm(self.hor_1_pos - self.hor_2_pos)
 
         # Calculate vertical cross-hairs
-        self.fov_ver_deg = 2 * np.arctan(np.tan(self.fov_hor_deg / 2 * np.pi / 180) * self.width_px / self.height_px) * 180 / np.pi
+        self.fov_ver_deg = (2 * np.arctan(np.tan(self.fov_hor_deg / 2 * np.pi / 180) * self.width_px / self.height_px)
+                            * 180 / np.pi)
 
         ver_length = self.height_px / self.width_px * hor_length
 
@@ -225,3 +156,14 @@ class Camera:
 
         self.hor_2_dir = self.hor_2_pos - self.eye
         self.hor_2_dir = self.hor_2_dir / np.linalg.norm(self.hor_2_dir)
+
+        self.bounding_frustum_dict = {
+            "c11_unit_dir": self.corner_11_dir,
+            "c12_unit_dir": self.corner_12_dir,
+            "c21_unit_dir": self.corner_21_dir,
+            "c22_unit_dir": self.corner_22_dir,
+            "h1_unit_dir": self.hor_1_dir,
+            "h2_unit_dir": self.hor_2_dir,
+            "v1_unit_dir": self.ver_1_dir,
+            "v2_unit_dir": self.ver_2_dir,
+        }
