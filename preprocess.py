@@ -5,7 +5,7 @@ import time
 
 
 def segment_tensor(voxel_tensor, value):
-    indices_x, indices_y, indices_z = np.where(voxel_tensor[:,:,:] == value)
+    indices_x, indices_y, indices_z = np.where(voxel_tensor[:, :, :] == value)
     indices_set = set(zip(indices_x, indices_y, indices_z))
     segment_list = []
 
