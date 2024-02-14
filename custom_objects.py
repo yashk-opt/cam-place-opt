@@ -1,26 +1,63 @@
 import open3d as o3d
 import numpy as np
-
+import copy
 from scene_visualizer import calculate_zy_rotation_for_arrow
 
 
-def create_hollow_room(width, height, depth):
+def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, wall_width=1, wall_normal="x",
+                       wall_slices=1, seed=42, random_range=0.1):
     room = o3d.geometry.TriangleMesh.create_box(width=width, height=height, depth=depth)
+    vertices = np.array(room.vertices)
     center = room.get_center()
-    room.translate(np.array([0, 0, 0]), relative=False)
 
+    # reverse triangle orientation so that normals are pointing inwards
+    room.triangles = o3d.cpu.pybind.utility.Vector3iVector(np.flip(np.array(room.triangles), axis=1))
+    room.compute_triangle_normals()
+
+    min_x, max_x = np.min(vertices[:, 0]), np.max(vertices[:, 0])
+    min_y, max_y = np.min(vertices[:, 1]), np.max(vertices[:, 1])
+    min_z, max_z = np.min(vertices[:, 2]), np.max(vertices[:, 2])
+
+    if wall_normal == "x":
+        # Design wall
+        wall = o3d.geometry.TriangleMesh.create_box(width=wall_width,
+                                                    height=wall_edge_ratio * height,
+                                                    depth=wall_edge_ratio * height)
+
+        for num in range(wall_slices):
+            wall_slice = (o3d.geometry.TriangleMesh.create_box(width=(2 * num + 1) * wall_width / (2 * wall_slices + 1),
+                                                               height=wall_edge_ratio * height,
+                                                               depth=wall_edge_ratio * height)
+                          .translate(wall.get_center(), relative=False)
+                          )
+            wall = wall + wall_slice
+
+        # Place wall
+        rng = np.random.default_rng(seed)
+        x_nominal = np.linspace(min_x, max_x, num=num_walls + 2)[1:-1]
+        x_nominal = [nom + (rng.random() * 2 - 1) * random_range * (max_x - min_x) for nom in x_nominal]
+        y_nominal = [wall_edge_ratio * max_y * 0.5] * len(x_nominal)
+        z_nominal_dir = np.random.randint(2, size=len(y_nominal))
+        z_nominal = [wall_edge_ratio * max_z * 0.5 if direction == 0
+                     else max_z - wall_edge_ratio * max_z * 0.5
+                     for direction in z_nominal_dir]
+
+        for count in range(num_walls):
+            wall_new = copy.deepcopy(wall).translate((x_nominal[count], y_nominal[count], z_nominal[count]),
+                                                     relative=False)
+            room = room + wall_new
+
+    room.translate(np.array(-center), relative=True)
     lines = []
     for triangle in np.array(room.triangles):
         lines.extend([(triangle[0], triangle[1]), (triangle[1], triangle[2]), (triangle[2], triangle[0])])
 
-    vertices = np.array(room.vertices)
-
     line_set = o3d.geometry.LineSet()
+    vertices = np.array(room.vertices)
     line_set.points = o3d.utility.Vector3dVector(vertices)
     line_set.lines = o3d.utility.Vector2iVector(lines)
 
-    room.triangles = o3d.cpu.pybind.utility.Vector3iVector(np.flip(np.array(room.triangles), axis=1))
-    room.compute_triangle_normals()
+    # line_set.translate(np.array(-center), relative=True)
 
     return room, line_set
 
