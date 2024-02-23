@@ -170,7 +170,7 @@ class MILPModel:
         self.constr_num = self.model.NumConstrs
         self.best_dual_bound = getattr(self.model, "ObjBoundC", np.nan)
 
-    def post_process(self):
+    def post_process(self, save_solution=False, folder_path=None):
         """ Organize solutions obtained from the MILP model """
         self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
                            for var in self.model.getVars()
@@ -188,6 +188,13 @@ class MILPModel:
 
         self.bounding_frustum_pa_c = bounding_frustum_pa_c
         self.viewable_points_pa = viewable_points_pa
+
+        if save_solution is True:
+            if folder_path is None:
+                raise ValueError("Specify folder name to store the solution in.")
+            else:
+                with open(folder_path / f"{self.model.ModelName}.pickle", 'wb') as handle:
+                    pickle.dump(self.x_pa_solve, handle)
 
     def visualize(self, view_solution=True, view_axes=True, view_invisible_points=True, cameras_all=True,
                   camera_num=[1]):
