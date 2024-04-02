@@ -1,3 +1,5 @@
+
+
 def extract_info(string):
     # Replace dashes with dots
     string = string.replace('-', '.')

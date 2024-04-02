@@ -1,12 +1,12 @@
 import numpy as np
-from view_calculations import find_3d_line_plane_intersection
+from utils.array_operations import find_3d_line_plane_intersection
 
 import open3d as o3d
 import pathlib
 from datetime import datetime
 from collections import Counter
 
-from view_calculations import are_arrays_parallel
+from utils.array_operations import are_arrays_parallel
 
 
 class Camera:

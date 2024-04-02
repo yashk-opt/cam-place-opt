@@ -1,5 +1,5 @@
 import numpy as np
-from view_calculations import delete_row_if_exists
+from utils.array_operations import delete_row_if_exists
 
 
 def sample_voxel_directions(free_space_points, num_voxels, num_points_axis, seed,

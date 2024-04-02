@@ -4,12 +4,12 @@ import open3d as o3d
 import pickle
 import gurobipy as gp
 from gurobipy import GRB
-from view_calculations import calculate_camera_view
-from camera import Camera
+from utils.view_calculations import calculate_camera_view
+from camera.camera_class import Camera
 from tqdm import tqdm
 import ast
-from scene_visualizer import create_voxels_subset, visualize_list
-from custom_objects import create_coordinate_axes_mesh, get_arrow
+from visualization.visualization_utils import create_voxels_subset, visualize_list
+from utils.custom_object_functions import create_coordinate_axes_mesh, get_arrow
 import logging
 import warnings
 import sys
