@@ -170,11 +170,16 @@ class MILPModel:
         self.constr_num = self.model.NumConstrs
         self.best_dual_bound = getattr(self.model, "ObjBoundC", np.nan)
 
-    def post_process(self, save_solution=False, folder_path=None):
+    def post_process(self, save_solution=False, folder_path=None, load_solution_path=None):
         """ Organize solutions obtained from the MILP model """
-        self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
-                           for var in self.model.getVars()
-                           if (var.varName.startswith("x") and var.X == 1)}
+        if load_solution_path is None:
+            self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
+                               for var in self.model.getVars()
+                               if (var.varName.startswith("x") and var.X == 1)}
+
+        else:
+            with open(load_solution_path, 'rb') as handle:
+                self.x_pa_solve = pickle.load(handle)
 
         viewable_points_pa = dict()
         bounding_frustum_pa_c = dict()
