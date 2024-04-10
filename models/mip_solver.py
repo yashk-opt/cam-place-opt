@@ -10,13 +10,14 @@ from tqdm import tqdm
 import ast
 from visualization.visualization_utils import create_voxels_subset, visualize_list
 from utils.custom_object_functions import create_coordinate_axes_mesh, get_arrow
+from utils.utils import update_voxel_directions_dict
 import logging
 import warnings
 import sys
 
 
 class MILPModel:
-    def __init__(self, scene, voxel_directions, num_cameras=None):
+    def __init__(self, scene, num_cameras=None):
 
         self.mipgap = None
         self.model = None
@@ -31,7 +32,7 @@ class MILPModel:
         self.best_dual_bound = None
 
         self.scene_data = scene
-        self.voxel_directions_dict = voxel_directions
+        self.voxel_directions_dict = dict()
 
         self.V = None
         self.PAbar = None
@@ -59,34 +60,56 @@ class MILPModel:
 
         pass
 
-    def pre_process(self, warm_start=False, **kwargs):
+    def pre_process(self, voxel_directions_dict, update_existing=False, **kwargs):
         """ Create mapping for parameters, sets and decision variables """
 
-        self.P = set(self.voxel_directions_dict.keys())
-        self.V = {tuple(row) for row in self.scene_data.free_space_points}
+        self.voxel_directions_dict = update_voxel_directions_dict(self.voxel_directions_dict, voxel_directions_dict)
+        if update_existing is False:
+            self.P = set(self.voxel_directions_dict.keys())
+            self.V = {tuple(row) for row in self.scene_data.free_space_points}
+            self.PAbar = {(key[0], key[1], key[2], *arr)
+                          for key, arr in self.voxel_directions_dict.items()
+                          for arr in arr.tolist()}
 
-        self.PAbar = {(key[0], key[1], key[2], *arr)
-                      for key, arr in self.voxel_directions_dict.items()
-                      for arr in arr.tolist()}
+            self.V_pa = dict()
+            for s in tqdm(self.PAbar):
+                cam = Camera()
+                cam_center = tuple(np.array(s[:3]) + np.array(s[-3:]))
+                cam.set_params(fov_deg=90, center=cam_center, eye=s[:3], width_px=640, height_px=480, up=(0, 1, 0))
+                free_space_covered = calculate_camera_view(self.scene_data, cam)
+                self.V_pa[s] = {tuple(row) for row in free_space_covered}
+
+            self.PA_v = dict()
+            for v in tqdm(self.V):
+                self.PA_v[v] = set()
+                for s in self.PAbar:
+                    if v in self.V_pa[s]:
+                        self.PA_v[v].add(s)
+
+        else:
+            self.P.update(set(voxel_directions_dict.keys()))
+            PA_temp = {(key[0], key[1], key[2], *arr)
+                       for key, arr in voxel_directions_dict.items()
+                       for arr in arr.tolist()}
+
+            self.PAbar.update(PA_temp)
+
+            for s in tqdm(PA_temp):
+                cam = Camera()
+                cam_center = tuple(np.array(s[:3]) + np.array(s[-3:]))
+                cam.set_params(fov_deg=90, center=cam_center, eye=s[:3], width_px=640, height_px=480, up=(0, 1, 0))
+                free_space_covered = calculate_camera_view(self.scene_data, cam)
+                self.V_pa[s] = {tuple(row) for row in free_space_covered}
+
+            for v in tqdm(self.V):
+                if v not in self.PA_v.keys():
+                    self.PA_v[v] = set()
+                for s in self.PAbar:
+                    if v in self.V_pa[s]:
+                        self.PA_v[v].add(s)
 
         if self.count_camera is True:
             self.C_pa = {key: 1 for key in self.PAbar}
-
-        self.V_pa = dict()
-        for s in tqdm(self.PAbar):
-            cam = Camera()
-            cam_center = tuple(np.array(s[:3]) + np.array(s[-3:]))
-            cam.set_params(fov_deg=90, center=cam_center, eye=s[:3], width_px=640, height_px=480, up=(0, 1, 0))
-            free_space_covered = calculate_camera_view(self.scene_data, cam)
-            self.V_pa[s] = {tuple(row) for row in free_space_covered}
-
-        self.PA_v = dict()
-        for v in tqdm(self.V):
-            self.PA_v[v] = set()
-            for s in self.PAbar:
-                if v in self.V_pa[s]:
-                    self.PA_v[v].add(s)
-
         self.A_p = self.voxel_directions_dict
 
         self.xpa_indexset = list(self.PAbar)
@@ -122,7 +145,7 @@ class MILPModel:
             lhs += self.C_pa[s] * x_pa[s]
         model.addConstr(lhs <= rhs, name=f"3")
 
-        # Constraint 3
+        # Constraint 4
         for p in self.P:
             rhs = 1
             lhs = 0
