@@ -19,7 +19,6 @@ import pathlib
 import os
 
 
-
 if __name__ == "__main__":
 
     data_path = pathlib.Path.cwd().parent / "data"
@@ -27,10 +26,10 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run.xlsx").iloc[1:]
+    batch_run = pd.read_excel(scene_folder / "batch_run_reduced.xlsx")
 
     all_data_list = []
-    for index, row in batch_run.iterrows():
+    for index, row in batch_run.iloc[::-1].iterrows():
         scene_name = row["Scene Name"]
         width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio = extract_info(scene_name)
 
@@ -54,12 +53,13 @@ if __name__ == "__main__":
         model.voxel_grid_dim = model.calc_voxel_grid_dim()
         model.voxel_size = model.voxel_grid.voxel_size
 
+        mip = MILPModel(scene=model, num_cameras=camera_budget)
+        rng = np.random.default_rng(camera_seed)
         voxel_direction_dict = sample_voxel_directions(free_space_points=model.free_space_points, num_voxels=num_voxels,
-                                                       num_points_axis=num_directions_axis, seed=camera_seed)
+                                                       num_points_axis=num_directions_axis, rng=rng)
 
-        mip = MILPModel(scene=model, voxel_directions=voxel_direction_dict, num_cameras=camera_budget)
         start = time.time()
-        mip.pre_process()
+        mip.pre_process(voxel_directions_dict=voxel_direction_dict)
         processing_time = time.time() - start
         mip.create_model(model_name=model_name)
         mip.optimize(max_run_time=3600, verbose=True)
