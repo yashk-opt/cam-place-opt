@@ -4,6 +4,99 @@ from utils.transformations import rotate_vectors
 from utils.utils import decimal_to_base_3d, update_voxel_directions_dict
 
 
+def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
+                            large_grid_params, large_grid_data, rng,
+                            uncovered_search_fraction=1, random_search_fraction=0,
+                            solutions=None, uncovered_search_min_dist_cutoff="auto"):
+
+    solution_search_fraction = 1 - uncovered_search_fraction - random_search_fraction
+    min_frac = min(solution_search_fraction, uncovered_search_fraction, random_search_fraction)
+    max_frac = max(solution_search_fraction, uncovered_search_fraction, random_search_fraction)
+
+    if min_frac < 0 and max_frac > 1:
+        raise ValueError(f"search fractions not adding up to 1 or are negative.")
+
+    if random_search_fraction > 0:
+        solutions = list(solutions.keys())
+        num_solutions = len(solutions)
+        explore_points = round(eff_num_points * random_search_fraction)
+        explore_voxel_directions = sample_voxel_directions(free_space_points, explore_points, num_points_axis, rng,
+                                                           remove_points=solutions)
+
+    if uncovered_search_fraction > 0:
+
+        block_pos_list = []
+        count_list = []
+
+        for block_pos, uncovered_count in large_grid_data.items():
+            block_pos_list.append(block_pos)
+            count_list.append(uncovered_count)
+
+        num_total_exploit_configs = eff_num_points * uncovered_search_fraction * num_points_axis ** 3
+        prob_block_selection = np.array(count_list) / sum(count_list)
+
+        select_block_pos = rng.choice(block_pos_list, size=num_total_exploit_configs, p=prob_block_selection)
+        select_free_space = rng.choice(list(free_space_points), size=num_total_exploit_configs)
+
+        if uncovered_search_min_dist_cutoff == "auto":
+            min_cutoff = int(np.ceil(large_grid_params["block_size"] // 2))
+        elif type(uncovered_search_min_dist_cutoff) is int:
+            min_cutoff = uncovered_search_min_dist_cutoff
+        else:
+            return ValueError(f"{uncovered_search_min_dist_cutoff} is not a correct option")
+
+        replace_elements = {}
+        directions = []
+        for i, voxel in enumerate(select_free_space):
+            distance = np.sum(np.abs(select_free_space[i] - select_block_pos[i]) / large_grid_params["voxel_size"])
+            cutoff_flag = 0
+            direction_unnormal = select_block_pos[i] - select_free_space[i]
+            direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+
+            while ((distance < min_cutoff)
+                   or np.all(np.isclose(direction, [0, 1, 0], atol=10 ** -4))
+                   or np.all(np.isclose(direction, [0, -1, 0], atol=10 ** -4))):
+
+                cutoff_flag = 1
+                free_space_point = rng.choice(list(free_space_points))
+                distance = np.sum(np.abs(free_space_point - select_block_pos[i]) / large_grid_params["voxel_size"])
+                direction_unnormal = select_block_pos[i] - free_space_point
+                direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+
+            if cutoff_flag == 1:
+                replace_elements[i] = free_space_point
+
+            directions.append(direction)
+
+        for i, elements in replace_elements.items():
+            select_free_space[i] = elements
+
+        ## combine voxel and directions
+        uncovered_voxel_directions_dict = {}
+        for i in range(len(select_free_space)):
+            if tuple(select_free_space[i]) in uncovered_voxel_directions_dict.keys():
+                uncovered_voxel_directions_dict[tuple(select_free_space[i])] = np.vstack(
+                    (uncovered_voxel_directions_dict[tuple(select_free_space[i])], directions[i]))
+            else:
+                uncovered_voxel_directions_dict[tuple(select_free_space[i])] = np.array([directions[i]])
+
+    if solution_search_fraction > 0:
+        solution_search_dict = {}
+        raise ValueError("Solution search fraction > 0 feature not implemented yet.")
+
+    voxel_directions_dict = {}
+    if 'uncovered_voxel_directions_dict' in locals():
+        voxel_directions_dict = update_voxel_directions_dict(voxel_directions_dict, uncovered_voxel_directions_dict)
+
+    if 'explore_voxel_directions' in locals():
+        voxel_directions_dict = update_voxel_directions_dict(voxel_directions_dict, explore_voxel_directions)
+
+    if 'solution_search_dict' in locals():
+        voxel_directions_dict = update_voxel_directions_dict(voxel_directions_dict, solution_search_dict)
+
+    return voxel_directions_dict
+
+
 def sample_explore_exploit(solutions, eff_num_points, free_space_points, num_points_axis, angle_jitter_deg,
                            voxel_jitter_num, explore_fraction, rng, remove_vert, voxel_size):
 
