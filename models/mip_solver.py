@@ -120,7 +120,7 @@ class MILPModel:
         model = gp.Model(model_name)
 
         x_pa = model.addVars(self.xpa_indexset, vtype=GRB.BINARY, name="x")
-        y_v = model.addVars(self.yv_indexset, vtype=GRB.BINARY, name="u", lb=0)
+        y_v = model.addVars(self.yv_indexset, vtype=GRB.BINARY, name="y", lb=0)
 
         # Objective 1
         obj = 0
@@ -223,6 +223,30 @@ class MILPModel:
             else:
                 with open(folder_path / f"{self.model.ModelName}.pickle", 'wb') as handle:
                     pickle.dump(self.x_pa_solve, handle)
+
+    def extract_voxel_info(self, type_info):
+
+        voxel_constraint_names = [constr.ConstrName
+                                  for constr in self.lp_model.getConstrs()
+                                  if constr.ConstrName.startswith("2_")]
+
+        voxel_info = {}
+        if "dual" in type_info:
+            voxel_dual_costs = {
+                ast.literal_eval(constr_name[2:]): self.lp_model.getConstrByName(constr_name).pi
+                for constr_name in voxel_constraint_names
+            }
+            voxel_info["dual"] = voxel_dual_costs
+
+        if "uncovered" in type_info:
+            voxel_coverage = {
+                var.varName[1:]: var.X
+                for var in self.model.getVars()
+                if var.varName.startswith("y")
+            }
+            voxel_info["uncovered"] = voxel_coverage
+
+        return voxel_info
 
     def visualize(self, view_solution=True, view_axes=True, view_invisible_points=True, cameras_all=True,
                   camera_num=[1]):
