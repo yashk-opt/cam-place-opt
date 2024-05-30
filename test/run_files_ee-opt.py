@@ -108,7 +108,11 @@ if __name__ == "__main__":
         total_mip_runtime = sum(mip_runtime_list)
         total_coverage = coverage_list[-1]
 
-        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+        if iteration % 3 == 0:
+            mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+
+        else:
+            mip.post_process(save_solution=False, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
                      num_points_axis, camera_seed, camera_budget, model_name,
