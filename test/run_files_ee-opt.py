@@ -26,7 +26,7 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_reduced.xlsx")
+    batch_run = pd.read_excel(scene_folder / "batch_run_ee.xlsx")
 
     all_data_list = []
     for index, row in batch_run[::-1].iterrows():
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         camera_seed = row["Camera Seed"]
         camera_budget = row["Camera Budget"]
 
-        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}"
+
 
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
@@ -55,13 +55,21 @@ if __name__ == "__main__":
 
         mip = MILPModel(scene=model, num_cameras=camera_budget)
 
-        num_iterations = 10
-        num_configurations = 240
-        angle_jitter_deg = 5
-        voxel_jitter_num = 5
+        num_iterations = row["Number of Iterations"]
+        # num_configurations = 240
+        angle_jitter_deg = row["Angle Perturbation Allowance"]
+        voxel_jitter_num = row["Voxel Perturbation Allowance"]
         rng = np.random.default_rng(camera_seed)
-        explore_fraction = 0.5
+        explore_fraction = row["Explore Fraction"]
+
+        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{explore_fraction}"
+
         num_voxels = round(num_voxels / num_iterations)
+
+        preprocessing_time_list = []
+        mip_runtime_list = []
+        coverage_list = []
+        lp_coverage_list = []
 
         for iteration in range(1, num_iterations + 1):
 
@@ -89,15 +97,29 @@ if __name__ == "__main__":
             processing_time = time.time() - start
             mip.create_model(model_name=model_name)
             mip.optimize(max_run_time=3600, verbose=True)
-            mip.post_process(save_solution=False, folder_path=scene_folder / scene_name)
+            mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
 
-        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name)
+            preprocessing_time_list.append(round(processing_time, 3))
+            mip_runtime_list.append(round(mip.runtime, 3))
+            coverage_list.append(round(mip.ip_value / len(model.free_space_points), 2))
+            lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 2))
+
+        total_preprocess_time = sum(preprocessing_time_list)
+        total_mip_runtime = sum(mip_runtime_list)
+        total_coverage = coverage_list[-1]
+
+        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
                      num_points_axis, camera_seed, camera_budget, model_name,
 
-                     processing_time, mip.runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
-                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count
+                     total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
+                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
+
+                     total_coverage,
+                     f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
+                     f"{mip_runtime_list}".replace('[', '').replace(']', ''),
+                     f"{coverage_list}".replace('[', '').replace(']', '')
 
                      ]
 
@@ -108,9 +130,14 @@ if __name__ == "__main__":
             "Width", "Height", "Depth", "Voxel Size", "No. Walls", "Room Seed", "Wall Edge ratio",
             "Sample Configurations", "Samples per config per axis", "Camera Seed", "Camera Budget", "Model Name",
 
-            "Pre-processing Time", "Runtime", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
+            "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
             "Constraint Count", "Variable Count", "Nodes Traversed",
+
+            "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list"
+
+
 
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_24-02-22.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-05-30.xlsx")
+        print(f"{index} completed")
