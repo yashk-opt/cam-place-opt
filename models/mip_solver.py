@@ -193,7 +193,7 @@ class MILPModel:
         self.constr_num = self.model.NumConstrs
         self.best_dual_bound = getattr(self.model, "ObjBoundC", np.nan)
 
-    def post_process(self, save_solution=False, folder_path=None, load_solution_path=None):
+    def post_process(self, save_solution=False, folder_path=None, load_solution_path=None, name_suffix=False):
         """ Organize solutions obtained from the MILP model """
         if load_solution_path is None:
             self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
@@ -221,7 +221,12 @@ class MILPModel:
             if folder_path is None:
                 raise ValueError("Specify folder name to store the solution in.")
             else:
-                with open(folder_path / f"{self.model.ModelName}.pickle", 'wb') as handle:
+                if name_suffix is False:
+                    filename = self.model.ModelName
+                else:
+                    filename = f"{self.model.ModelName}{name_suffix}"
+
+                with open(folder_path / f"{filename}.pickle", 'wb') as handle:
                     pickle.dump(self.x_pa_solve, handle)
 
     def extract_voxel_info(self, type_info):
