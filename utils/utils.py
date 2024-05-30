@@ -8,7 +8,7 @@ def get_project_root() -> Path:
 
 
 def get_project_data() -> Path:
-    return Path(__file__).parent / "data"
+    return Path(__file__).parent.parent / "data"
 
 
 @jit(nopython=True)
