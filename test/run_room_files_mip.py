@@ -26,10 +26,10 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_reduced.xlsx")
+    batch_run = pd.read_excel(scene_folder / "batch_run_mip.xlsx")
 
     all_data_list = []
-    for index, row in batch_run.iloc[::-1].iterrows():
+    for index, row in batch_run.iterrows():
         scene_name = row["Scene Name"]
         width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio = extract_info(scene_name)
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         camera_seed = row["Camera Seed"]
         camera_budget = row["Camera Budget"]
 
-        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}"
+        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}-MIP"
 
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
@@ -85,4 +85,4 @@ if __name__ == "__main__":
 
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_24-02-22.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_24-05-29.xlsx")
