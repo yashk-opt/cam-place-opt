@@ -63,6 +63,19 @@ def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, w
     return room, line_set
 
 
+def develop_mesh_line_set(mesh):
+    lines = []
+    for triangle in np.array(mesh.triangles):
+        lines.extend([(triangle[0], triangle[1]), (triangle[1], triangle[2]), (triangle[2], triangle[0])])
+
+    line_set = o3d.geometry.LineSet()
+    vertices = np.array(mesh.vertices)
+    line_set.points = o3d.utility.Vector3dVector(vertices)
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+
+    return line_set
+
+
 def get_arrow(end, origin=np.array([0, 0, 0]), scale=1):
 
     assert not np.all(end == origin), "start and end point are same"
