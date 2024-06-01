@@ -27,10 +27,10 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_reduced.xlsx")
+    batch_run = pd.read_excel(scene_folder / "batch_run_su.xlsx")
 
     all_data_list = []
-    for index, row in batch_run[::-1].iterrows():
+    for index, row in batch_run.iterrows():
         scene_name = row["Scene Name"]
         width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio = extract_info(scene_name)
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         camera_seed = row["Camera Seed"]
         camera_budget = row["Camera Budget"]
 
-        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}"
+
 
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
@@ -56,13 +56,20 @@ if __name__ == "__main__":
 
         mip = MILPModel(scene=model, num_cameras=camera_budget)
 
-        num_iterations = 10
-        num_configurations = 240
-        angle_jitter_deg = 5
-        voxel_jitter_num = 5
+        num_iterations = row["Number of Iterations"]
+        block_size = row["Super Voxel Size"]
+        uncovered_search_fraction = row["Uncovered Search Fraction"]
+        explore_fraction = 1 - uncovered_search_fraction
+
+        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}SV{block_size}US{uncovered_search_fraction}"
+
         rng = np.random.default_rng(camera_seed)
-        explore_fraction = 0.5
         num_voxels = round(num_voxels / num_iterations)
+
+        preprocessing_time_list = []
+        mip_runtime_list = []
+        coverage_list = []
+        lp_coverage_list = []
 
         for iteration in range(1, num_iterations + 1):
 
@@ -75,14 +82,16 @@ if __name__ == "__main__":
 
             else:
                 voxel_info = mip.extract_voxel_info(type_info="uncovered")
-                voxel_collection_count, large_grid_info = voxel_block_count(model, voxel_info)
+                voxel_collection_count, large_grid_info = voxel_block_count(model, voxel_info, block_size)
 
                 voxel_direction_dict = sample_uncovered_voxels(eff_num_points=num_voxels,
                                                                num_points_axis=num_points_axis,
                                                                free_space_points=model.free_space_points,
                                                                large_grid_data=voxel_collection_count,
                                                                large_grid_params=large_grid_info, rng=rng,
-                                                               uncovered_search_fraction=1, solutions=None)
+                                                               uncovered_search_fraction=uncovered_search_fraction,
+                                                               random_search_fraction=explore_fraction,
+                                                               solutions=mip.x_pa_solve)
 
                 start = time.time()
                 mip.pre_process(voxel_directions_dict=voxel_direction_dict, update_existing=True)
@@ -90,15 +99,36 @@ if __name__ == "__main__":
             processing_time = time.time() - start
             mip.create_model(model_name=model_name)
             mip.optimize(max_run_time=3600, verbose=True)
-            mip.post_process(save_solution=False, folder_path=scene_folder / scene_name)
+            if iteration % 100 == 0:
+                mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
 
-        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name)
+            else:
+                mip.post_process(save_solution=False, folder_path=scene_folder / scene_name,
+                                 name_suffix=f"-{iteration}")
+
+            preprocessing_time_list.append(round(processing_time, 3))
+            mip_runtime_list.append(round(mip.runtime, 3))
+            coverage_list.append(round(mip.ip_value / len(model.free_space_points), 2))
+            lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 2))
+
+        total_preprocess_time = sum(preprocessing_time_list)
+        total_mip_runtime = sum(mip_runtime_list)
+        total_coverage = coverage_list[-1]
+
+        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-final")
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
                      num_points_axis, camera_seed, camera_budget, model_name,
 
                      processing_time, mip.runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
-                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count
+                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
+
+                     block_size, uncovered_search_fraction, num_iterations,
+
+                     total_coverage,
+                     f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
+                     f"{mip_runtime_list}".replace('[', '').replace(']', ''),
+                     f"{coverage_list}".replace('[', '').replace(']', '')
 
                      ]
 
@@ -112,6 +142,11 @@ if __name__ == "__main__":
             "Pre-processing Time", "Runtime", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
             "Constraint Count", "Variable Count", "Nodes Traversed",
 
+            "Super Voxel Size", "Uncovered Search Fraction", "Number of Iterations",
+
+            "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list"
+
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_24-02-22.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_su_24-05-30.xlsx")
+        print(f"Index {index} completed")
