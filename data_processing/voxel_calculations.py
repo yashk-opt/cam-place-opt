@@ -4,7 +4,7 @@ from collections import defaultdict
 import open3d as o3d
 
 
-def voxel_block_count(scene, voxel_info, block_size=5, voxel_info_type="uncovered"):
+def voxel_block_count(scene, voxel_info, block_size, voxel_info_type="uncovered"):
 
     if block_size % 2 != 1:
         block_size += 1
