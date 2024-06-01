@@ -6,7 +6,7 @@ from visualization.visualization_utils import visualize_list
 
 
 def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, wall_width=1, wall_normal="x",
-                       wall_slices=1, seed=42, random_range=0.2):
+                       wall_slices=1, seed=42, random_range=0.0):
     room = o3d.geometry.TriangleMesh.create_box(width=width, height=height, depth=depth)
     vertices = np.array(room.vertices)
     center = room.get_center()
