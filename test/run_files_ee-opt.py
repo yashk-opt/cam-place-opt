@@ -59,8 +59,9 @@ if __name__ == "__main__":
         # num_configurations = 240
         angle_jitter_deg = row["Angle Perturbation Allowance"]
         voxel_jitter_num = row["Voxel Perturbation Allowance"]
-        rng = np.random.default_rng(camera_seed)
         explore_fraction = row["Explore Fraction"]
+
+        rng = np.random.default_rng(camera_seed)
 
         model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{explore_fraction}"
 
@@ -97,7 +98,11 @@ if __name__ == "__main__":
             processing_time = time.time() - start
             mip.create_model(model_name=model_name)
             mip.optimize(max_run_time=3600, verbose=True)
-            mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+            if iteration % 100 == 0:
+                mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+
+            else:
+                mip.post_process(save_solution=False)
 
             preprocessing_time_list.append(round(processing_time, 3))
             mip_runtime_list.append(round(mip.runtime, 3))
@@ -108,17 +113,15 @@ if __name__ == "__main__":
         total_mip_runtime = sum(mip_runtime_list)
         total_coverage = coverage_list[-1]
 
-        if iteration % 3 == 0:
-            mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
-
-        else:
-            mip.post_process(save_solution=False, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-final")
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
                      num_points_axis, camera_seed, camera_budget, model_name,
 
                      total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
                      mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
+
+                     explore_fraction, voxel_jitter_num, angle_jitter_deg, num_iterations,
 
                      total_coverage,
                      f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
@@ -136,6 +139,8 @@ if __name__ == "__main__":
 
             "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
             "Constraint Count", "Variable Count", "Nodes Traversed",
+
+            "Explore Fraction", "Voxel Perturbation Allowance", "Angle Perturbation Allowance", "Number of Iterations",
 
             "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list"
 
