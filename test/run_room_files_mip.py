@@ -86,3 +86,4 @@ if __name__ == "__main__":
         ])
 
         batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_24-05-29.xlsx")
+        print(f"Index {index} completed")
