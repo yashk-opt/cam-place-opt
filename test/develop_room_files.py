@@ -5,6 +5,7 @@ from utils.custom_object_functions import create_hollow_room, get_arrow, create_
 from visualization.visualization_utils import visualize_list, create_voxels_subset
 from models.sample_configurations import sample_directions
 from utils.scene import Scene
+from utils.utils import get_project_data
 from camera.camera_class import Camera
 from utils.view_calculations import calculate_camera_view
 import pickle
@@ -14,10 +15,11 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
 
-    data_path = pathlib.Path.cwd().parent / "data"
+    # data_path = pathlib.Path.cwd().parent / "data"
+    data_path = get_project_data()
     data_attribute_path = data_path / "room_walls"
 
-    scene_file_path = data_attribute_path / "scene_attributes.xlsx"
+    scene_file_path = data_attribute_path / "scene_attributes_v2.xlsx"
 
     data_df = pd.read_excel(scene_file_path)
 
