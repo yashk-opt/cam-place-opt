@@ -32,7 +32,7 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
             block_pos_list.append(block_pos)
             count_list.append(uncovered_count)
 
-        num_total_exploit_configs = eff_num_points * uncovered_search_fraction * num_points_axis ** 3
+        num_total_exploit_configs = int(eff_num_points * uncovered_search_fraction * num_points_axis ** 3)
         prob_block_selection = np.array(count_list) / sum(count_list)
 
         select_block_pos = rng.choice(block_pos_list, size=num_total_exploit_configs, p=prob_block_selection)
