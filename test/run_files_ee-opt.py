@@ -26,20 +26,19 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_ee.xlsx")
+    batch_run = pd.read_excel(scene_folder / "batch_run_ee_24-06-09.xlsx")
 
     all_data_list = []
-    for index, row in batch_run[::-1].iterrows():
+    for index, row in batch_run.loc[2:].iterrows():
         scene_name = row["Scene Name"]
-        width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio = extract_info(scene_name)
+        (width, height, depth, voxel_size,
+         num_walls, room_seed, wall_edge_ratio, wall_orient) = extract_info(scene_name)
 
         num_voxels = row["Sample Configurations"]
         num_points_axis = row["Samples per config per axis"]
 
         camera_seed = row["Camera Seed"]
         camera_budget = row["Camera Budget"]
-
-
 
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
@@ -63,7 +62,8 @@ if __name__ == "__main__":
 
         rng = np.random.default_rng(camera_seed)
 
-        model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{explore_fraction}"
+        model_name = (f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}"
+                      f"AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{explore_fraction}")
 
         num_voxels = round(num_voxels / num_iterations)
 
@@ -71,82 +71,92 @@ if __name__ == "__main__":
         mip_runtime_list = []
         coverage_list = []
         lp_coverage_list = []
+        voxel_covered_list = []
 
-        for iteration in range(1, num_iterations + 1):
+        try:
 
-            if iteration == 1:
-                voxel_direction_dict = sample_voxel_directions(free_space_points=model.free_space_points,
-                                                               num_voxels=num_voxels,
-                                                               num_points_axis=num_points_axis, rng=rng)
+            start_overall = time.time()
+            for iteration in range(1, num_iterations + 1):
 
-            else:
-                voxel_direction_dict = sample_explore_exploit(solutions=mip.x_pa_solve,
-                                                              eff_num_points=num_voxels,
-                                                              free_space_points=model.free_space_points,
-                                                              num_points_axis=num_points_axis,
-                                                              angle_jitter_deg=angle_jitter_deg,
-                                                              voxel_jitter_num=voxel_jitter_num,
-                                                              explore_fraction=explore_fraction,
-                                                              rng=rng, remove_vert=True, voxel_size=model.voxel_size)
+                if time.time() - start_overall < 3600:
 
-            start = time.time()
-            if iteration == 1:
-                mip.pre_process(voxel_directions_dict=voxel_direction_dict)
-            else:
-                mip.pre_process(voxel_directions_dict=voxel_direction_dict, update_existing=True)
+                    if iteration == 1:
+                        voxel_direction_dict = sample_voxel_directions(free_space_points=model.free_space_points,
+                                                                       num_voxels=num_voxels,
+                                                                       num_points_axis=num_points_axis, rng=rng)
 
-            processing_time = time.time() - start
-            mip.create_model(model_name=model_name)
-            mip.optimize(max_run_time=3600, verbose=True)
-            if iteration % 100 == 0:
-                mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
+                    else:
+                        voxel_direction_dict = sample_explore_exploit(solutions=mip.x_pa_solve,
+                                                                      eff_num_points=num_voxels,
+                                                                      free_space_points=model.free_space_points,
+                                                                      num_points_axis=num_points_axis,
+                                                                      angle_jitter_deg=angle_jitter_deg,
+                                                                      voxel_jitter_num=voxel_jitter_num,
+                                                                      explore_fraction=explore_fraction,
+                                                                      rng=rng, remove_vert=True, voxel_size=model.voxel_size)
 
-            else:
-                mip.post_process(save_solution=False)
+                    start = time.time()
+                    if iteration == 1:
+                        mip.pre_process(voxel_directions_dict=voxel_direction_dict)
+                    else:
+                        mip.pre_process(voxel_directions_dict=voxel_direction_dict, update_existing=True)
 
-            preprocessing_time_list.append(round(processing_time, 3))
-            mip_runtime_list.append(round(mip.runtime, 3))
-            coverage_list.append(round(mip.ip_value / len(model.free_space_points), 2))
-            lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 2))
+                    processing_time = time.time() - start
+                    mip.create_model(model_name=model_name)
+                    mip.optimize(max_run_time=3600, verbose=True)
+                    if iteration % 100 == 0:
+                        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
 
-        total_preprocess_time = sum(preprocessing_time_list)
-        total_mip_runtime = sum(mip_runtime_list)
-        total_coverage = coverage_list[-1]
+                    else:
+                        mip.post_process(save_solution=False)
 
-        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-final")
+                    preprocessing_time_list.append(round(processing_time, 3))
+                    mip_runtime_list.append(round(mip.runtime, 3))
+                    coverage_list.append(round(mip.ip_value / len(model.free_space_points), 3))
+                    voxel_covered_list.append(mip.ip_value)
+                    lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 3))
 
-        data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
-                     num_points_axis, camera_seed, camera_budget, model_name,
+            total_preprocess_time = sum(preprocessing_time_list)
+            total_mip_runtime = sum(mip_runtime_list)
+            total_coverage = coverage_list[-1]
 
-                     total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
-                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
+            # mip.post_process(save_solution=False, folder_path=scene_folder / scene_name, name_suffix=f"-final")
 
-                     explore_fraction, voxel_jitter_num, angle_jitter_deg, num_iterations,
+            data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient,
+                         num_voxels, num_points_axis, camera_seed, camera_budget, model_name,
 
-                     total_coverage,
-                     f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
-                     f"{mip_runtime_list}".replace('[', '').replace(']', ''),
-                     f"{coverage_list}".replace('[', '').replace(']', '')
+                         total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
+                         mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
 
-                     ]
+                         explore_fraction, voxel_jitter_num, angle_jitter_deg, num_iterations,
+
+                         total_coverage,
+                         f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
+                         f"{mip_runtime_list}".replace('[', '').replace(']', ''),
+                         f"{coverage_list}".replace('[', '').replace(']', ''),
+                         f"{voxel_covered_list}".replace('[', '').replace(']', '')
+
+                         ]
+
+        except:
+            data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient,
+                         num_voxels, num_points_axis, camera_seed, camera_budget, model_name] + [None] * 18
 
         all_data_list.append(data_list)
 
         batch_runs_solns = pd.DataFrame(all_data_list)
         batch_runs_solns.columns = ([
-            "Width", "Height", "Depth", "Voxel Size", "No. Walls", "Room Seed", "Wall Edge ratio",
+            "Width", "Height", "Depth", "Voxel Size", "No. Walls", "Room Seed", "Z Wall Edge ratio", "Wall Orient",
             "Sample Configurations", "Samples per config per axis", "Camera Seed", "Camera Budget", "Model Name",
 
-            "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
-            "Constraint Count", "Variable Count", "Nodes Traversed",
+            "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value",
+            "Best Dual Bound", "Constraint Count", "Variable Count", "Nodes Traversed",
 
             "Explore Fraction", "Voxel Perturbation Allowance", "Angle Perturbation Allowance", "Number of Iterations",
 
-            "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list"
-
-
-
+            "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list",
+            "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-05-30.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-06-09.xlsx")
         print(f"{index} completed")
