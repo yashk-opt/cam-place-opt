@@ -29,7 +29,7 @@ if __name__ == "__main__":
     batch_run = pd.read_excel(scene_folder / "batch_run_ee_24-06-09.xlsx")
 
     all_data_list = []
-    for index, row in batch_run.loc[2:].iterrows():
+    for index, row in batch_run.loc[3:].iterrows():
         scene_name = row["Scene Name"]
         (width, height, depth, voxel_size,
          num_walls, room_seed, wall_edge_ratio, wall_orient) = extract_info(scene_name)
@@ -102,7 +102,13 @@ if __name__ == "__main__":
                         mip.pre_process(voxel_directions_dict=voxel_direction_dict, update_existing=True)
 
                     processing_time = time.time() - start
-                    mip.create_model(model_name=model_name)
+
+                    if iteration == 1:
+                        mip.create_model(model_name=model_name)
+
+                    else:
+                        mip.create_model(model_name=model_name, load_sol=cur_best_cam)
+
                     mip.optimize(max_run_time=3600, verbose=True)
                     if iteration % 100 == 0:
                         mip.post_process(save_solution=True, folder_path=scene_folder / scene_name, name_suffix=f"-{iteration}")
@@ -115,6 +121,8 @@ if __name__ == "__main__":
                     coverage_list.append(round(mip.ip_value / len(model.free_space_points), 3))
                     voxel_covered_list.append(mip.ip_value)
                     lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 3))
+
+                    cur_best_cam = mip.x_pa_solve
 
             total_preprocess_time = sum(preprocessing_time_list)
             total_mip_runtime = sum(mip_runtime_list)
@@ -158,5 +166,5 @@ if __name__ == "__main__":
             "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-06-09.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-06-09_v2.xlsx")
         print(f"{index} completed")
