@@ -115,7 +115,7 @@ class MILPModel:
         self.xpa_indexset = list(self.PAbar)
         self.yv_indexset = self.V
 
-    def create_model(self, model_name):
+    def create_model(self, model_name, load_sol=None):
         """ Create Mixed Integer Model"""
         model = gp.Model(model_name)
 
@@ -157,6 +157,13 @@ class MILPModel:
         self.model = model
         self.x_pa = x_pa
         self.y_v = y_v
+
+        for cam_config in self.x_pa.keys():
+            self.x_pa[cam_config].Start = 0
+
+        if load_sol is not None:
+            for cam_config in load_sol.keys():
+                self.x_pa[cam_config].Start = 1
 
     def optimize(self, max_run_time, log_path=None, verbose=False, **kwargs):
 
