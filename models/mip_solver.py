@@ -150,7 +150,8 @@ class MILPModel:
             rhs = 1
             lhs = 0
             for a in self.A_p[p]:
-                lhs += x_pa[(*p, *a)]
+                if not np.isnan([*p, *a]).any():
+                    lhs += x_pa[(*p, *a)]
             model.addConstr(lhs <= rhs, name=f"4_{p}")
 
         self.model = model
