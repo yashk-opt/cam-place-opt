@@ -5,8 +5,14 @@ from utils.transformations import calculate_zy_rotation_for_arrow
 from visualization.visualization_utils import visualize_list
 
 
-def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, wall_width=1, wall_normal="x",
-                       wall_slices=1, seed=42, random_range=0.0):
+def create_hollow_room(width, height, depth, num_walls=0, y_wall_edge_ratio=1, z_wall_edge_ratio=0.8,
+                       wall_width=1, wall_slices=1, seed=42, random_range=0.0, wall_orient="random", **kwargs):
+
+    wall_edge_ratio = kwargs.get("wall_edge_ratio", None)
+    if wall_edge_ratio is not None:
+        y_wall_edge_ratio = wall_edge_ratio
+        z_wall_edge_ratio = wall_edge_ratio
+
     room = o3d.geometry.TriangleMesh.create_box(width=width, height=height, depth=depth)
     vertices = np.array(room.vertices)
     center = room.get_center()
@@ -19,34 +25,38 @@ def create_hollow_room(width, height, depth, num_walls=0, wall_edge_ratio=0.8, w
     min_y, max_y = np.min(vertices[:, 1]), np.max(vertices[:, 1])
     min_z, max_z = np.min(vertices[:, 2]), np.max(vertices[:, 2])
 
-    if wall_normal == "x":
-        # Design wall
-        wall = o3d.geometry.TriangleMesh.create_box(width=wall_width,
-                                                    height=wall_edge_ratio * height,
-                                                    depth=wall_edge_ratio * height)
+    # Design wall
+    wall = o3d.geometry.TriangleMesh.create_box(width=wall_width,
+                                                height=y_wall_edge_ratio * height,
+                                                depth=z_wall_edge_ratio * height)
 
-        for num in range(wall_slices):
-            wall_slice = (o3d.geometry.TriangleMesh.create_box(width=(2 * num + 1) * wall_width / (2 * wall_slices + 1),
-                                                               height=wall_edge_ratio * height,
-                                                               depth=wall_edge_ratio * height)
-                          .translate(wall.get_center(), relative=False)
-                          )
-            wall = wall + wall_slice
+    for num in range(wall_slices):
+        wall_slice = (o3d.geometry.TriangleMesh.create_box(width=(2 * num + 1) * wall_width / (2 * wall_slices + 1),
+                                                           height=y_wall_edge_ratio * height,
+                                                           depth=z_wall_edge_ratio * height)
+                      .translate(wall.get_center(), relative=False)
+                      )
+        wall = wall + wall_slice
 
-        # Place wall
-        rng = np.random.default_rng(seed)
-        x_nominal = np.linspace(min_x, max_x, num=num_walls + 2)[1:-1]
-        x_nominal = [nom + (rng.random() * 2 - 1) * random_range * (max_x - min_x) for nom in x_nominal]
-        y_nominal = [wall_edge_ratio * max_y * 0.5] * len(x_nominal)
+    # Place wall
+    rng = np.random.default_rng(seed)
+    x_nominal = np.linspace(min_x, max_x, num=num_walls + 2)[1:-1]
+    x_nominal = [nom + (rng.random() * 2 - 1) * random_range * (max_x - min_x) for nom in x_nominal]
+    y_nominal = [y_wall_edge_ratio * max_y * 0.5] * len(x_nominal)
+    if wall_orient == "random":
         z_nominal_dir = np.random.randint(2, size=len(y_nominal))
-        z_nominal = [wall_edge_ratio * max_z * 0.5 if direction == 0
-                     else max_z - wall_edge_ratio * max_z * 0.5
-                     for direction in z_nominal_dir]
+    elif wall_orient == "same":
+        z_nominal_dir = np.array([0] * len(y_nominal))
+    elif wall_orient == "alternate":
+        z_nominal_dir = np.array([0, 1] * int(np.ceil(len(y_nominal) // 2)))[:len(y_nominal)]
+    z_nominal = [z_wall_edge_ratio * max_z * 0.5 if direction == 0
+                 else max_z - z_wall_edge_ratio * max_z * 0.5
+                 for direction in z_nominal_dir]
 
-        for count in range(num_walls):
-            wall_new = copy.deepcopy(wall).translate((x_nominal[count], y_nominal[count], z_nominal[count]),
-                                                     relative=False)
-            room = room + wall_new
+    for count in range(num_walls):
+        wall_new = copy.deepcopy(wall).translate((x_nominal[count], y_nominal[count], z_nominal[count]),
+                                                 relative=False)
+        room = room + wall_new
 
     room.translate(np.array(-center), relative=True)
     lines = []
