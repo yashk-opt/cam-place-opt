@@ -2,6 +2,7 @@
 ## Data Files
 figures/
 data/
+analytics/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
