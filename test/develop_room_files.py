@@ -19,7 +19,7 @@ if __name__ == "__main__":
     data_path = get_project_data()
     data_attribute_path = data_path / "room_walls"
 
-    scene_file_path = data_attribute_path / "scene_attributes_v2.xlsx"
+    scene_file_path = data_attribute_path / "room_attributes_24-06-09.xlsx"
 
     data_df = pd.read_excel(scene_file_path)
 
@@ -30,9 +30,12 @@ if __name__ == "__main__":
         voxel_size = row["voxel size"]
         num_walls = int(row["wall"])
         seed = int(row["seed"])
-        wall_edge_ratio = row["wall edge ratio"]
+        wall_edge_ratio = row["z wall edge ratio"]
+        wall_orientation = row["wall orient"]
 
-        foldername = f"W{width}H{height}D{depth}VS{voxel_size}NW{num_walls}S{seed}R{wall_edge_ratio}"
+        foldername = (f"W{width}H{height}D{depth}VS{voxel_size}NW{num_walls}"
+                      f"S{seed}ZR{wall_edge_ratio}WO{wall_orientation.upper()[0]}").replace(".", "-")
+
         # foldername = row["foldername"]
 
         room, line_set = create_hollow_room(width=width, height=height, depth=depth, num_walls=num_walls, seed=seed,
