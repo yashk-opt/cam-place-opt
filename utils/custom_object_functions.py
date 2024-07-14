@@ -48,7 +48,7 @@ def create_hollow_room(width, height, depth, num_walls=0, y_wall_edge_ratio=1, z
     elif wall_orient == "same":
         z_nominal_dir = np.array([0] * len(y_nominal))
     elif wall_orient == "alternate":
-        z_nominal_dir = np.array([0, 1] * int(np.ceil(len(y_nominal) // 2)))[:len(y_nominal)]
+        z_nominal_dir = np.array([0, 1] * int(np.ceil(len(y_nominal) / 2)))[:len(y_nominal)]
     z_nominal = [z_wall_edge_ratio * max_z * 0.5 if direction == 0
                  else max_z - z_wall_edge_ratio * max_z * 0.5
                  for direction in z_nominal_dir]
