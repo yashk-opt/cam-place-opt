@@ -261,8 +261,8 @@ class MILPModel:
 
         return voxel_info
 
-    def visualize(self, view_solution=True, view_axes=True, view_invisible_points=True, cameras_all=True,
-                  camera_num=[1]):
+    def visualize(self, view_solution=True, view_axes=False, view_invisible_points=True, cameras_all=True,
+                  camera_num=[1], return_object_list=False):
         """ Visualize the solution obtained """
 
         if cameras_all is True:
@@ -289,7 +289,7 @@ class MILPModel:
 
                     viewable_points = create_voxels_subset(self.scene_data.voxel_grid,
                                                            self.viewable_points_pa[s],
-                                                           voxel_size= self.scene_data.voxel_size / 4,
+                                                           voxel_size=self.scene_data.voxel_size / 4,
                                                            object_type="point", color="deep_pink")
                     view_list.append(viewable_points)
 
@@ -310,4 +310,8 @@ class MILPModel:
             axes = create_coordinate_axes_mesh(np.array([0, 0, 0]))
             view_list += list(axes)
 
-        visualize_list(view_list)
+        if view_solution is True:
+            visualize_list(view_list)
+
+        if return_object_list is True:
+            return view_list
