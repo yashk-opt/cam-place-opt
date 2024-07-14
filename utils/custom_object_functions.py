@@ -105,11 +105,38 @@ def get_arrow(end, origin=np.array([0, 0, 0]), scale=1):
 
 def create_coordinate_axes_mesh(origin, dir_x=np.array([1, 0, 0]), dir_y=np.array([0, 1, 0]), dir_z=np.array([0, 0, 1])):
 
-    arrow_x = get_arrow(origin + dir_x)
+    arrow_x = get_arrow(origin + dir_x, origin)
     arrow_x.paint_uniform_color(np.array([1, 0, 0]))
-    arrow_y = get_arrow(origin + dir_y)
+    arrow_y = get_arrow(origin + dir_y, origin)
     arrow_y.paint_uniform_color(np.array([0, 1, 0]))
-    arrow_z = get_arrow(origin + dir_z)
+    arrow_z = get_arrow(origin + dir_z, origin)
     arrow_z.paint_uniform_color(np.array([0, 0, 1]))
 
-    return arrow_x, arrow_y, arrow_z
+    return [arrow_x, arrow_y, arrow_z]
+
+def filter_lines_parallel_to_axes(line_set):
+
+    vertices = np.asarray(line_set.points)
+    lines = np.asarray(line_set.lines)
+
+    # List to hold filtered lines
+    filtered_lines = []
+
+    for line in lines:
+        start_idx, end_idx = line
+        start_point = vertices[start_idx]
+        end_point = vertices[end_idx]
+
+        # Compute the difference vector
+        diff = end_point - start_point
+
+        # Check if the line is parallel or anti-parallel to any of the coordinate axes
+        if np.count_nonzero(diff) == 1:
+            filtered_lines.append(line)
+
+    # Create a new LineSet with filtered lines
+    filtered_line_set = o3d.geometry.LineSet()
+    filtered_line_set.points = o3d.utility.Vector3dVector(vertices)
+    filtered_line_set.lines = o3d.utility.Vector2iVector(filtered_lines)
+
+    return filtered_line_set
