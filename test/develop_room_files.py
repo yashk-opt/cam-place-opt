@@ -15,13 +15,15 @@ from tqdm import tqdm
 
 if __name__ == "__main__":
 
-    # data_path = pathlib.Path.cwd().parent / "data"
     data_path = get_project_data()
     data_attribute_path = data_path / "room_walls"
 
     scene_file_path = data_attribute_path / "room_attributes_24-06-09.xlsx"
+    # data_df = pd.read_excel(scene_file_path)
 
-    data_df = pd.read_excel(scene_file_path)
+    data_columns = ['width', 'height', 'depth', 'voxel size', 'wall', 'seed', 'z wall edge ratio', 'wall orient']
+    data_list = [[80, 10, 10, 1.0, 7, 1111, 0.8, 'alternate']]
+    data_df = pd.DataFrame(data_list, columns=data_columns)
 
     for index, row in data_df.iterrows():
         width = row["width"]
@@ -39,7 +41,7 @@ if __name__ == "__main__":
         # foldername = row["foldername"]
 
         room, line_set = create_hollow_room(width=width, height=height, depth=depth, num_walls=num_walls, seed=seed,
-                                            wall_edge_ratio=wall_edge_ratio)
+                                            z_wall_edge_ratio=wall_edge_ratio, wall_orient=wall_orientation)
 
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
