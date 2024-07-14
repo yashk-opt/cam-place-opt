@@ -26,10 +26,23 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_ee_24-06-09.xlsx")
+
+    data_columns = ['Folder Name', 'Scene Name', 'Sample Configurations',
+                    'Samples per config per axis', 'Camera Seed', 'Camera Budget',
+                    'Explore Fraction', 'Voxel Perturbation Allowance',
+                    'Angle Perturbation Allowance', 'Number of Iterations']
+
+    data_list = [['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 3, 0.5, 2, 15, 10],
+                 ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 3, 0.5, 2, 15, 10],
+                 ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 3, 1, 2, 15, 10],
+                 ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 3, 1, 2, 15, 10],]
+
+    batch_run = pd.DataFrame(data_list, columns=data_columns)
+
+    # batch_run = pd.read_excel(scene_folder / "batch_run_ee_24-06-09.xlsx")
 
     all_data_list = []
-    for index, row in batch_run.loc[3:].iterrows():
+    for index, row in batch_run.iterrows():
         scene_name = row["Scene Name"]
         (width, height, depth, voxel_size,
          num_walls, room_seed, wall_edge_ratio, wall_orient) = extract_info(scene_name)
@@ -166,5 +179,5 @@ if __name__ == "__main__":
             "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-06-09_v2.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_ee_24-07-13_v2.xlsx")
         print(f"{index} completed")
