@@ -26,18 +26,48 @@ if __name__ == "__main__":
     scenes_list = os.listdir(scene_folder)
 
     batch_run_path = scene_folder
-    batch_run = pd.read_excel(scene_folder / "batch_run_mip.xlsx")
+
+    data_columns = ["Folder Name", "Scene Name", "Sample Configurations",
+                    "Samples per config per axis", "Camera Seed", "Camera Budget",
+                    "Configuration Count Fraction"]
+
+    data_list = [["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.1],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.2],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.3],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.4],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.5],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.6],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.7],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.8],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.9],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 1.0],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.1],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.2],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.3],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.4],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.5],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.6],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.7],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.8],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.9],
+                 ["room_walls", 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 1.0],
+                 ]
+
+    batch_run = pd.DataFrame(data_list, columns=data_columns)
+    # batch_run = pd.read_excel(scene_folder / "batch_run_mip.xlsx")
 
     all_data_list = []
     for index, row in batch_run.iterrows():
         scene_name = row["Scene Name"]
-        width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio = extract_info(scene_name)
+        width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient = extract_info(scene_name)
 
         num_voxels = row["Sample Configurations"]
         num_directions_axis = row["Samples per config per axis"]
 
         camera_seed = row["Camera Seed"]
         camera_budget = row["Camera Budget"]
+
+        num_voxel_fraction = row["Configuration Count Fraction"]
 
         model_name = f"{scene_name}NC{camera_budget}CS{camera_seed}-MIP"
 
@@ -56,14 +86,15 @@ if __name__ == "__main__":
         mip = MILPModel(scene=model, num_cameras=camera_budget)
         rng = np.random.default_rng(camera_seed)
         voxel_direction_dict = sample_voxel_directions(free_space_points=model.free_space_points, num_voxels=num_voxels,
-                                                       num_points_axis=num_directions_axis, rng=rng)
+                                                       num_points_axis=num_directions_axis, rng=rng,
+                                                       num_voxel_fraction=num_voxel_fraction)
 
         start = time.time()
         mip.pre_process(voxel_directions_dict=voxel_direction_dict)
         processing_time = time.time() - start
         mip.create_model(model_name=model_name)
         mip.optimize(max_run_time=3600, verbose=True)
-        mip.post_process(save_solution=True, folder_path=scene_folder / scene_name)
+        mip.post_process(save_solution=False, folder_path=scene_folder / scene_name)
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, num_voxels,
                      num_directions_axis, camera_seed, camera_budget, model_name,
@@ -85,5 +116,7 @@ if __name__ == "__main__":
 
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_24-05-29.xlsx")
+        # batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_24-05-29.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_.xlsx")
+
         print(f"Index {index} completed")
