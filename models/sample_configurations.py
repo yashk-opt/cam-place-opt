@@ -1,5 +1,5 @@
 import numpy as np
-from utils.array_operations import delete_row_if_exists
+from utils.array_operations import delete_row_if_exists, generate_infinity_norm_arrays, arrays_within_tolerance_numba
 from utils.transformations import rotate_vectors
 from utils.utils import decimal_to_base_3d, update_voxel_directions_dict
 
@@ -103,43 +103,56 @@ def sample_explore_exploit(solutions, eff_num_points, free_space_points, num_poi
     solutions = list(solutions.keys())
     num_solutions = len(solutions)
     explore_points = round(eff_num_points * explore_fraction)
-    explore_voxel_directions = sample_voxel_directions(free_space_points, explore_points, num_points_axis, rng,
-                                                       remove_points=solutions)
 
-    num_configs_per_point = round(eff_num_points * num_points_axis ** 3 * (1 - explore_fraction) / num_solutions)
+    if explore_fraction > 0:
+        explore_voxel_directions = sample_voxel_directions(free_space_points, explore_points, num_points_axis, rng,
+                                                           remove_points=solutions)
 
-    sampled_angles_z = sample_spherical_cap(rng, params={
-        "N": num_configs_per_point * num_solutions,
-        "deg": angle_jitter_deg
-    })
+    if 1 - explore_fraction > 0:
 
-    sampled_angles = np.vstack(tuple([rotate_vectors(sampled_angles_z[i:i + num_configs_per_point],
-                                                     from_vector=np.array([0, 0, 1]),
-                                                     to_vector=np.array(solutions[i // num_configs_per_point][3:]))
-                                      for i in range(0, sampled_angles_z.shape[0], num_configs_per_point)]))
+        num_configs_per_point = round(eff_num_points * num_points_axis ** 3 * (1 - explore_fraction) / num_solutions)
+        voxel_rel_block = generate_infinity_norm_arrays(voxel_jitter_num, voxel_size)
+        exploit_voxel_directions = dict()
+        for solution in solutions:
+            # solution_freespace_dict = {solution: arrays_within_tolerance_numba(voxel_rel_block + solution,
+            #                                                                    free_space_points,
+            #                                                                    tolerance=voxel_size/10)}
 
-    sampled_place_num = rng.integers(low=0, high=(2 * voxel_jitter_num + 1) ** 3,
-                                     size=num_configs_per_point * num_solutions)
+            selectable_free_space = arrays_within_tolerance_numba(voxel_rel_block + np.array(solution[:3]),
+                                                                  free_space_points,
+                                                                  tolerance=voxel_size/10)
 
-    sampled_place_rel = voxel_size * (np.array([decimal_to_base_3d(num, 2 * voxel_jitter_num + 1)
-                                               for num in sampled_place_num])
-                                      - np.array([[voxel_jitter_num, voxel_jitter_num, voxel_jitter_num]]))
+            sampled_exploit_points = selectable_free_space[
+                rng.integers(len(selectable_free_space), size=num_configs_per_point)
+            ]
 
-    solution_voxels = np.repeat(np.array([solution[:3] for solution in solutions]), num_configs_per_point, axis=0)
-    solution_voxels_jittered = solution_voxels + sampled_place_rel
+            sampled_angles_z = sample_spherical_cap(rng, params={
+                "N": num_configs_per_point,
+                "deg": angle_jitter_deg
+            })
 
-    exploit_voxel_directions = dict()
-    for i in range(len(solution_voxels_jittered)):
+            sampled_angles = rotate_vectors(sampled_angles_z,
+                                            from_vector=np.array([0, 0, 1]),
+                                            to_vector=np.array(solution[3:]))
 
-        if tuple(solution_voxels_jittered[i]) in exploit_voxel_directions.keys():
-            exploit_voxel_directions[tuple(solution_voxels_jittered[i])] = np.vstack(
-                (exploit_voxel_directions[tuple(solution_voxels_jittered[i])], sampled_angles[i])
-            )
+            for i in range(len(sampled_exploit_points)):
 
-        else:
-            exploit_voxel_directions[tuple(solution_voxels_jittered[i])] = np.array([sampled_angles[i]])
+                if tuple(sampled_exploit_points[i]) in exploit_voxel_directions.keys():
+                    exploit_voxel_directions[tuple(sampled_exploit_points[i])] = np.vstack(
+                        (exploit_voxel_directions[tuple(sampled_exploit_points[i])], sampled_angles[i])
+                    )
 
-    return update_voxel_directions_dict(explore_voxel_directions, exploit_voxel_directions)
+                else:
+                    exploit_voxel_directions[tuple(sampled_exploit_points[i])] = np.array([sampled_angles[i]])
+
+    if 0 < explore_fraction < 1:
+        return update_voxel_directions_dict(explore_voxel_directions, exploit_voxel_directions)
+
+    elif explore_fraction == 0:
+        return exploit_voxel_directions
+
+    else:
+        return explore_voxel_directions
 
 
 def sample_spherical_cap(rng, params=None):
