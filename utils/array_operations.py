@@ -118,3 +118,50 @@ def find_3d_line_plane_intersection(line_point_0, line_point_1, plane_point, pla
         return line_point_0 + line_direction
 
     return None
+
+
+def generate_infinity_norm_arrays(num, voxel_size, arr=None):
+
+    if arr is None:
+        arr = [0, 0, 0]
+
+    n = len(arr)
+    ranges = [range(-num, num + 1)] * n
+
+    if arr == [0, 0, 0]:
+        all_combinations = (
+                np.array(np.meshgrid(*ranges)).T.reshape(-1, n) * voxel_size
+        )
+    else:
+        arr = np.array(arr)
+        n = len(arr)
+        all_combinations = (
+                np.array(np.meshgrid(*ranges)).T.reshape(-1, n) * voxel_size + arr
+        )
+
+    return all_combinations
+
+
+@jit(nopython=True)
+def arrays_within_tolerance_numba(arr1, arr2, tolerance):
+
+    result = []
+    arr_size = arr1.shape[1]
+    arr1_len = arr1.shape[0]
+    arr2_len = arr2.shape[0]
+
+    for i in range(arr1_len):
+
+        for j in range(arr2_len):
+            within_tolerance = True
+            for k in range(arr_size):
+                if np.abs(arr1[i, k] - arr2[j, k]) > tolerance:
+                    within_tolerance = False
+                    break
+
+            if within_tolerance == True:
+                result.append(list(arr1[i]))
+                break
+
+    result = np.array(result)
+    return result
