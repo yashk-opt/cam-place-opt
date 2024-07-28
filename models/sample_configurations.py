@@ -178,7 +178,8 @@ def sample_spherical_cap(rng, params=None):
 
 def sample_voxel_directions(free_space_points, num_voxels, num_points_axis, rng,
                             voxel_selection_type="random", directions_per_voxel="same",
-                            direction_selection_type="uniform", remove_vertical=True, remove_points=None):
+                            direction_selection_type="uniform", remove_vertical=True, num_voxel_fraction=1.0,
+                            remove_points=None):
 
     if voxel_selection_type == "random":
         assert num_voxels <= len(free_space_points), "Sample required should be smaller than population"
@@ -187,6 +188,12 @@ def sample_voxel_directions(free_space_points, num_voxels, num_points_axis, rng,
 
     else:
         raise ValueError(f"Wrong voxel selection type. {voxel_selection_type} not implemented")
+
+    if 0 < num_voxel_fraction <= 1.0:
+        sampled_rows = sampled_rows[:round(num_voxel_fraction * num_voxels)]
+
+    else:
+        raise ValueError(f"num_voxel_fraction {num_voxel_fraction} is not allowed")
 
     if directions_per_voxel == "same":
         if direction_selection_type == "uniform":
