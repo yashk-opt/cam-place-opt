@@ -59,7 +59,8 @@ if __name__ == "__main__":
     all_data_list = []
     for index, row in batch_run.iterrows():
         scene_name = row["Scene Name"]
-        width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient = extract_info(scene_name)
+        (width, height, depth, voxel_size,
+         num_walls, room_seed, wall_edge_ratio, wall_orient) = extract_info(scene_name)
 
         num_voxels = row["Sample Configurations"]
         num_directions_axis = row["Samples per config per axis"]
@@ -100,7 +101,8 @@ if __name__ == "__main__":
                      num_directions_axis, camera_seed, camera_budget, model_name,
 
                      processing_time, mip.runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
-                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count
+                     mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
+                     mip.ip_value / len(model.free_space_points),
 
                      ]
 
@@ -112,7 +114,7 @@ if __name__ == "__main__":
             "Sample Configurations", "Samples per config per axis", "Camera Seed", "Camera Budget", "Model Name",
 
             "Pre-processing Time", "Runtime", "Total Free Space", "LP Value", "IP Value", "Best Dual Bound",
-            "Constraint Count", "Variable Count", "Nodes Traversed",
+            "Constraint Count", "Variable Count", "Nodes Traversed", "Coverage",
 
         ])
 
