@@ -18,7 +18,12 @@ def create_hollow_room(width, height, depth, num_walls=0, y_wall_edge_ratio=1, z
     center = room.get_center()
 
     # reverse triangle orientation so that normals are pointing inwards
-    room.triangles = o3d.cpu.pybind.utility.Vector3iVector(np.flip(np.array(room.triangles), axis=1))
+    if hasattr(o3d, 'cuda'):
+        room.triangles = o3d.cuda.pybind.utility.Vector3iVector(np.flip(np.array(room.triangles), axis=1))
+
+    else:
+        room.triangles = o3d.cpu.pybind.utility.Vector3iVector(np.flip(np.array(room.triangles), axis=1))
+
     room.compute_triangle_normals()
 
     min_x, max_x = np.min(vertices[:, 0]), np.max(vertices[:, 0])

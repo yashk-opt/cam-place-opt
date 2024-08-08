@@ -54,12 +54,21 @@ def calculate_camera_view(scene, camera):
     # Use raycasting on the subset of free space points to figure out how far these points are before hitting the scene
     camera_eyes = np.tile(camera.eye, (len(frustum_scene_points_eye), 1))
     frustum_space_rays = np.hstack((camera_eyes, frustum_scene_points_eye))
-    frustum_space_collisions_distance_vector = (
-        np.asarray(
-            view.cast_rays(
-                o3d.cpu.pybind.core.Tensor([frustum_space_rays.astype('float32', casting='same_kind')])
-            )["t_hit"]).reshape(-1)
-                                             )
+    if hasattr(o3d, 'cuda'):
+        frustum_space_collisions_distance_vector = (
+            np.asarray(
+                view.cast_rays(
+                    o3d.core.Tensor([frustum_space_rays.astype('float32', casting='same_kind')])
+                )["t_hit"]).reshape(-1)
+                                                 )
+
+    else:
+        frustum_space_collisions_distance_vector = (
+            np.asarray(
+                view.cast_rays(
+                    o3d.cpu.pybind.core.Tensor([frustum_space_rays.astype('float32', casting='same_kind')])
+                )["t_hit"]).reshape(-1)
+        )
 
     # If the length of the free space points from the eye is less than the length of the hit points from the eye,
     # than those free points are visible
