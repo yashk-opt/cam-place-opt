@@ -27,39 +27,12 @@ if __name__ == "__main__":
 
     batch_run_path = scene_folder
 
-    data_columns = ['Folder Name', 'Scene Name', 'Sample Configurations',
-                    'Samples per config per axis', 'Camera Seed', 'Camera Budget',
-                    'Explore Fraction', 'Voxel Perturbation Allowance',
-                    'Angle Perturbation Allowance', 'Number of Iterations']
+    data_columns = ['Folder Name', 'Scene Name', 'Sample Voxels Per Iteration',
+                    'Angles per Voxel per Axis', 'Camera Seed', 'Camera Budget',
+                    'Exploit Fraction', 'Voxel Perturbation Allowance',
+                    'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
-    data_list = [
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.0, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.1, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.2, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.3, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.4, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.5, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.6, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.7, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.8, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 0.9, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOA', 100, 2, 1, 8, 1.0, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.0, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.1, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.2, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.3, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.4, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.5, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.6, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.7, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.8, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 0.9, 2, 15, 10],
-        ['room_walls', 'W80H10D10VS1-0NW7S1111ZR0-8WOS', 100, 2, 1, 8, 1.0, 2, 15, 10],
-                 ]
-
-    batch_run = pd.DataFrame(data_list, columns=data_columns)
-
-    # batch_run = pd.read_excel(scene_folder / "batch_run_ee_24-06-09.xlsx")
+    batch_run = pd.read_excel(scene_folder / "qqq" / "large_medium_room_ee_complete_240808.xlsx")
 
     all_data_list = []
     for index, row in batch_run.iterrows():
@@ -67,10 +40,11 @@ if __name__ == "__main__":
         (width, height, depth, voxel_size,
          num_walls, room_seed, wall_edge_ratio, wall_orient) = extract_info(scene_name)
 
-        num_voxels = row["Sample Configurations"]
-        num_points_axis = row["Samples per config per axis"]
+        num_voxels_per_iter = row["Sample Voxels Per Iteration"]
+        num_points_axis = row["Angles per Voxel per Axis"]
 
         camera_seed = row["Camera Seed"]
+        initial_point_seed = row["Initial Point Seed"]
         camera_budget = row["Camera Budget"]
 
         model = Scene(filepath="None", obj_type="None")
@@ -91,14 +65,30 @@ if __name__ == "__main__":
         # num_configurations = 240
         angle_jitter_deg = row["Angle Perturbation Allowance"]
         voxel_jitter_num = row["Voxel Perturbation Allowance"]
-        explore_fraction = row["Explore Fraction"]
+        exploit_fraction = row["Exploit Fraction"]
 
-        rng = np.random.default_rng(camera_seed)
+        rng = np.random.default_rng(initial_point_seed)
+
+        # Ensures if initial point and camera seed are the same, same pseudorandom generator keeps being used
+        if initial_point_seed == camera_seed:
+            rng2 = rng
+
+        else:
+            rng2 = np.random.default_rng(camera_seed)
 
         model_name = (f"{scene_name}NC{camera_budget}CS{camera_seed}NI{num_iterations}"
-                      f"AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{explore_fraction}")
+                      f"AJ{angle_jitter_deg}VJ{voxel_jitter_num}EX{exploit_fraction}")
 
-        num_voxels = round(num_voxels / num_iterations)
+        if row["Angle Selection"] == "random":
+            directions_per_voxel = "random"
+            direction_selection_type = "random"
+
+        elif row["Angle Selection"] == "uniform":
+            directions_per_voxel = "same"
+            direction_selection_type = "uniform"
+
+        else:
+            raise ValueError(f"Incorrect Angle Selection Provided: {row['Angle Selection']}")
 
         preprocessing_time_list = []
         mip_runtime_list = []
@@ -115,18 +105,24 @@ if __name__ == "__main__":
 
                 if iteration == 1:
                     voxel_direction_dict = sample_voxel_directions(free_space_points=model.free_space_points,
-                                                                   num_voxels=num_voxels,
-                                                                   num_points_axis=num_points_axis, rng=rng)
+                                                                   num_voxels=num_voxels_per_iter,
+                                                                   num_points_axis=num_points_axis,
+                                                                   directions_per_voxel=directions_per_voxel,
+                                                                   direction_selection_type=direction_selection_type,
+                                                                   rng=rng)
 
                 else:
                     voxel_direction_dict = sample_explore_exploit(solutions=mip.x_pa_solve,
-                                                                  eff_num_points=num_voxels,
+                                                                  eff_num_points=num_voxels_per_iter,
                                                                   free_space_points=model.free_space_points,
                                                                   num_points_axis=num_points_axis,
                                                                   angle_jitter_deg=angle_jitter_deg,
                                                                   voxel_jitter_num=voxel_jitter_num,
-                                                                  explore_fraction=explore_fraction,
-                                                                  rng=rng, remove_vert=True, voxel_size=model.voxel_size)
+                                                                  exploit_fraction=exploit_fraction,
+                                                                  rng=rng2, remove_vert=True,
+                                                                  voxel_size=model.voxel_size,
+                                                                  directions_per_voxel=directions_per_voxel,
+                                                                  direction_selection_type=direction_selection_type)
 
                 start = time.time()
                 if iteration == 1:
@@ -166,12 +162,12 @@ if __name__ == "__main__":
         # mip.post_process(save_solution=False, folder_path=scene_folder / scene_name, name_suffix=f"-final")
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient,
-                     num_voxels, num_points_axis, camera_seed, camera_budget, model_name,
+                     num_voxels_per_iter, num_points_axis, initial_point_seed, camera_seed, camera_budget, model_name,
 
                      total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
                      mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
 
-                     explore_fraction, voxel_jitter_num, angle_jitter_deg, num_iterations,
+                     exploit_fraction, voxel_jitter_num, angle_jitter_deg, direction_selection_type, num_iterations,
 
                      total_coverage,
                      f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
@@ -183,23 +179,25 @@ if __name__ == "__main__":
 
         # except:
         #     data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient,
-        #                  num_voxels, num_points_axis, camera_seed, camera_budget, model_name] + [None] * 18
+        #                  num_voxels_per_iter, num_points_axis, camera_seed, camera_budget, model_name] + [None] * 19
 
         all_data_list.append(data_list)
 
         batch_runs_solns = pd.DataFrame(all_data_list)
         batch_runs_solns.columns = ([
             "Width", "Height", "Depth", "Voxel Size", "No. Walls", "Room Seed", "Z Wall Edge ratio", "Wall Orient",
-            "Sample Configurations", "Samples per config per axis", "Camera Seed", "Camera Budget", "Model Name",
+            "Sample Voxels Per Iteration", "Angles per Voxel per Axis", "Initial Point Seed", "Camera Seed",
+            "Camera Budget", "Model Name",
 
             "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value",
             "Best Dual Bound", "Constraint Count", "Variable Count", "Nodes Traversed",
 
-            "Explore Fraction", "Voxel Perturbation Allowance", "Angle Perturbation Allowance", "Number of Iterations",
+            "Exploit Fraction", "Voxel Perturbation Allowance", 'Angle Perturbation Allowance', 'Angle Selection',
+            "Number of Iterations",
 
             "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list",
             "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"explore_exploit_fraction_changes.xlsx")
+        batch_runs_solns.round(3).to_excel(batch_run_path / f"sols_large_medium_room_ee_complete_240808.xlsx")
         print(f"{index} completed")
