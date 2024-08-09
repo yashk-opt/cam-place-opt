@@ -8,6 +8,7 @@ from models.sample_configurations import sample_directions
 from utils.scene import Scene
 from camera.camera_class import Camera
 from utils.view_calculations import calculate_camera_view
+from utils.utils import get_project_data
 from data_processing.csv_reader import extract_info
 from models.sample_configurations import sample_voxel_directions, sample_explore_exploit
 
@@ -21,7 +22,7 @@ import os
 
 if __name__ == "__main__":
 
-    data_path = pathlib.Path.cwd().parent / "data"
+    data_path = get_project_data()
     scene_folder = data_path / "room_walls"
     scenes_list = os.listdir(scene_folder)
 
