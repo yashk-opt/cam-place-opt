@@ -98,15 +98,21 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
 
 
 def sample_explore_exploit(solutions, eff_num_points, free_space_points, num_points_axis, angle_jitter_deg,
-                           voxel_jitter_num, explore_fraction, rng, remove_vert, voxel_size):
+                           voxel_jitter_num, exploit_fraction, rng, remove_vert, voxel_size, **kwargs):
 
+    directions_per_voxel = kwargs.get("directions_per_voxel", "same")
+    direction_selection_type = kwargs.get("direction_selection_type", "uniform")
+
+    explore_fraction = 1 - exploit_fraction
     solutions = list(solutions.keys())
     num_solutions = len(solutions)
     explore_points = round(eff_num_points * explore_fraction)
 
     if explore_fraction > 0:
         explore_voxel_directions = sample_voxel_directions(free_space_points, explore_points, num_points_axis, rng,
-                                                           remove_points=solutions)
+                                                           remove_points=solutions,
+                                                           directions_per_voxel=directions_per_voxel,
+                                                           direction_selection_type=direction_selection_type)
 
     if 1 - explore_fraction > 0:
 
@@ -214,7 +220,7 @@ def sample_voxel_directions(free_space_points, num_voxels, num_points_axis, rng,
     elif directions_per_voxel == "random":
         voxel_directions = dict()
         for row in sampled_rows:
-            directions = sample_directions(num_points_axis, sample_type="random")
+            directions = sample_directions(num_points_axis, sample_type="random", rng=rng)
             directions = directions[~np.any(np.isnan(directions), axis=1)]
             if remove_vertical is True:
                 directions = delete_row_if_exists(directions, np.array([0, -1, 0]))
@@ -253,7 +259,8 @@ def sample_directions(num_points_axis, sample_type="uniform", angle_shift=0, ang
         else:
             raise TypeError(f"num_points_axis cannot be {num_points_axis}")
 
-        result = np.vstack([rng.random(num_points) for _ in range(3)]).T * 2 - 1
+        # result = np.vstack([rng.random(num_points) for _ in range(3)]).T * 2 - 1
+        result = rng.multivariate_normal(np.zeros(3), np.eye(3), size=num_points)
         result /= np.linalg.norm(result, axis=1)[:, np.newaxis]
 
     else:
