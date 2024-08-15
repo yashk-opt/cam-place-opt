@@ -32,7 +32,10 @@ def create_voxels_subset(voxel_grid, object_list, voxel_size=None, object_type="
         "slate_blue": np.array([106, 90, 205])/255,
         "black": np.array([0, 0, 0])/255,
     }
-    color = color_dict[kwargs.get("color", "dark_orchid")]
+
+    color = kwargs.get("color", "dark_orchid")
+    if type(color) is str:
+        color = color_dict[color]
 
     if voxel_size is None:
         voxel_size = voxel_grid.voxel_size
