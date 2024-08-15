@@ -6,6 +6,14 @@ def delete_row_if_exists(array_2d, check_row, tolerance=10**-4):
     return array_2d[~np.all(np.isclose(array_2d, check_row, atol=tolerance), axis=1)]
 
 
+def remove_similar_rows(arr_a, arr_b, tolerance=10**-4):
+
+    arr_a_copy = arr_a.copy()
+    for row in arr_b:
+        arr_a_copy = delete_row_if_exists(arr_a_copy, row, tolerance=tolerance)
+    return arr_a_copy
+
+
 @jit(nopython=True)
 def are_arrays_parallel(vec_1_dir, vec_2_dir):
     """
@@ -163,5 +171,9 @@ def arrays_within_tolerance_numba(arr1, arr2, tolerance):
                 result.append(list(arr1[i]))
                 break
 
-    result = np.array(result)
     return result
+
+
+def arrays_within_tolerance_complete(arr1, arr2, tolerance):
+    result = arrays_within_tolerance_numba(arr1, arr2, tolerance)
+    return np.array(result)
