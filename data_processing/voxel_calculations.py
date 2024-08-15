@@ -42,7 +42,7 @@ def voxel_block_count(scene, voxel_info, block_size, voxel_info_type="uncovered"
     return dict(large_grid_block_pos_dict), large_grid_info
 
 
-def bresenham_3d(x1, y1, z1, x2, y2, z2):
+def bresenham_3d(x1, y1, z1, x2, y2, z2, voxel_size):
 
     line_points = [(x1, y1, z1)]
     dx = abs(x2 - x1)
@@ -50,17 +50,17 @@ def bresenham_3d(x1, y1, z1, x2, y2, z2):
     dz = abs(z2 - z1)
 
     if x2 > x1:
-        xs = 1
+        xs = voxel_size
     else:
-        xs = -1
+        xs = -voxel_size
     if y2 > y1:
-        ys = 1
+        ys = voxel_size
     else:
-        ys = -1
+        ys = -voxel_size
     if z2 > z1:
-        zs = 1
+        zs = voxel_size
     else:
-        zs = -1
+        zs = -voxel_size
 
     # Driving axis is X-axis
     if dx >= dy and dx >= dz:
