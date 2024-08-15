@@ -1,5 +1,5 @@
 import numpy as np
-from utils.array_operations import delete_row_if_exists, generate_infinity_norm_arrays, arrays_within_tolerance_numba
+from utils.array_operations import delete_row_if_exists, generate_infinity_norm_arrays, arrays_within_tolerance_complete
 from utils.transformations import rotate_vectors
 from utils.utils import decimal_to_base_3d, update_voxel_directions_dict
 
@@ -7,7 +7,10 @@ from utils.utils import decimal_to_base_3d, update_voxel_directions_dict
 def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
                             large_grid_params, large_grid_data, rng,
                             uncovered_search_fraction=1, random_search_fraction=0,
-                            solutions=None, uncovered_search_min_dist_cutoff="auto"):
+                            solutions=None, uncovered_search_min_dist_cutoff="auto", **kwargs):
+
+    directions_per_voxel = kwargs.get("directions_per_voxel", "same")
+    direction_selection_type = kwargs.get("direction_selection_type", "uniform")
 
     solution_search_fraction = 1 - uncovered_search_fraction - random_search_fraction
     min_frac = min(solution_search_fraction, uncovered_search_fraction, random_search_fraction)
@@ -21,7 +24,9 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
         num_solutions = len(solutions)
         explore_points = round(eff_num_points * random_search_fraction)
         explore_voxel_directions = sample_voxel_directions(free_space_points, explore_points, num_points_axis, rng,
-                                                           remove_points=solutions)
+                                                           remove_points=solutions,
+                                                           directions_per_voxel=directions_per_voxel,
+                                                           direction_selection_type=direction_selection_type)
 
     if uncovered_search_fraction > 0:
 
@@ -120,13 +125,13 @@ def sample_explore_exploit(solutions, eff_num_points, free_space_points, num_poi
         voxel_rel_block = generate_infinity_norm_arrays(voxel_jitter_num, voxel_size)
         exploit_voxel_directions = dict()
         for solution in solutions:
-            # solution_freespace_dict = {solution: arrays_within_tolerance_numba(voxel_rel_block + solution,
+            # solution_freespace_dict = {solution: arrays_within_tolerance_complete(voxel_rel_block + solution,
             #                                                                    free_space_points,
             #                                                                    tolerance=voxel_size/10)}
 
-            selectable_free_space = arrays_within_tolerance_numba(voxel_rel_block + np.array(solution[:3]),
-                                                                  free_space_points,
-                                                                  tolerance=voxel_size/10)
+            selectable_free_space = arrays_within_tolerance_complete(voxel_rel_block + np.array(solution[:3]),
+                                                                     free_space_points,
+                                                                     tolerance=voxel_size/10)
 
             sampled_exploit_points = selectable_free_space[
                 rng.integers(len(selectable_free_space), size=num_configs_per_point)
