@@ -3,6 +3,7 @@
 figures/
 data/
 analytics/
+experimental_features/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
