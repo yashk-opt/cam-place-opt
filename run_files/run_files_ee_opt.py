@@ -8,7 +8,7 @@ from models.sample_configurations import sample_directions
 from utils.scene import Scene
 from camera.camera_class import Camera
 from utils.view_calculations import calculate_camera_view
-from utils.utils import get_project_data
+from utils.utils import get_project_data, get_project_root
 from data_processing.csv_reader import extract_info
 from models.sample_configurations import sample_voxel_directions, sample_explore_exploit
 
@@ -22,7 +22,10 @@ import os
 
 if __name__ == "__main__":
 
+    project_path = get_project_root()
     data_path = get_project_data()
+    analytics_path = project_path / "analytics"
+
     scene_folder = data_path / "room_walls"
     scenes_list = os.listdir(scene_folder)
 
@@ -33,7 +36,7 @@ if __name__ == "__main__":
                     'Exploit Fraction', 'Voxel Perturbation Allowance',
                     'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
-    batch_run = pd.read_excel(scene_folder / "qqq" / "large_medium_room_ee_complete_240808.xlsx")
+    batch_run = pd.read_excel(analytics_path / "analysis set august 2024" / "exploit fraction analysis.xlsx")
 
     all_data_list = []
     for index, row in batch_run.iterrows():
@@ -200,5 +203,5 @@ if __name__ == "__main__":
             "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(batch_run_path / f"sols_large_medium_room_ee_complete_240808.xlsx")
+        batch_runs_solns.round(3).to_excel(analytics_path / "analysis set august 2024" / f"sols_exploit_fraction.xlsx")
         print(f"{index} completed")
