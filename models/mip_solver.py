@@ -14,6 +14,7 @@ from utils.utils import update_voxel_directions_dict
 import logging
 import warnings
 import sys
+from copy import deepcopy
 
 
 class MILPModel:
@@ -201,16 +202,50 @@ class MILPModel:
         self.constr_num = self.model.NumConstrs
         self.best_dual_bound = getattr(self.model, "ObjBoundC", np.nan)
 
-    def post_process(self, save_solution=False, folder_path=None, load_solution_path=None, name_suffix=False):
-        """ Organize solutions obtained from the MILP model """
-        if load_solution_path is None:
-            self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
-                               for var in self.model.getVars()
-                               if (var.varName.startswith("x") and var.X == 1)}
+    def greedy_optimize(self, max_run_time, log_path=None, verbose=False, **kwargs):
 
-        else:
-            with open(load_solution_path, 'rb') as handle:
-                self.x_pa_solve = pickle.load(handle)
+        new_V_pa = deepcopy(self.V_pa)
+        new_C_pa = deepcopy(self.C_pa)
+        K_left = deepcopy(self.K)
+        new_cam_possible =True
+        x_pa = []
+
+        while(new_cam_possible):
+
+            remove_pa = {key for (key, value) in new_C_pa.items() if value > K_left}
+
+            if len(remove_pa) > 0:
+                new_V_pa = {key: value for (key, value) in new_V_pa.items() if key not in remove_pa}
+                new_C_pa = {key: value for (key, value) in new_C_pa.items() if key not in remove_pa}
+
+            if new_V_pa == {}:
+                new_cam_possible = False
+
+            else:
+                select_pa = max(self.V_pa, key=lambda pa: len(self.V_pa[pa]) / self.C_pa[pa])
+                x_pa.append(select_pa)
+                K_left = K_left - new_C_pa[select_pa]
+
+                select_p = select_pa[:3]
+                v_cover_set = new_V_pa[select_pa]
+
+                new_C_pa = {key: value for (key, value) in new_C_pa.items() if key[:3] != select_p}
+                new_V_pa = {key: value - v_cover_set  for (key, value) in new_V_pa.items() if key[:3] != select_p}
+
+        self.x_pa_solve = {ele: 1 for ele in x_pa}
+
+    def post_process(self, save_solution=False, folder_path=None, load_solution_path=None, name_suffix=False,
+                     greedy_heur=False):
+        """ Organize solutions obtained from the MILP model """
+        if greedy_heur is False:
+            if load_solution_path is None:
+                self.x_pa_solve = {tuple(ast.literal_eval(var.varName[1:])): var.X
+                                   for var in self.model.getVars()
+                                   if (var.varName.startswith("x") and var.X == 1)}
+
+            else:
+                with open(load_solution_path, 'rb') as handle:
+                    self.x_pa_solve = pickle.load(handle)
 
         viewable_points_pa = dict()
         bounding_frustum_pa_c = dict()
