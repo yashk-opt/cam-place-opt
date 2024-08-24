@@ -2,7 +2,7 @@ import numpy as np
 from utils.array_operations import delete_row_if_exists, generate_infinity_norm_arrays, arrays_within_tolerance_complete
 from utils.transformations import rotate_vectors
 from utils.utils import decimal_to_base_3d, update_voxel_directions_dict
-
+from utils.linear_interpolation import generate_line, find_furthest_non_intersect
 
 def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
                             large_grid_params, large_grid_data, rng,
@@ -11,6 +11,8 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
 
     directions_per_voxel = kwargs.get("directions_per_voxel", "same")
     direction_selection_type = kwargs.get("direction_selection_type", "uniform")
+    mesh = kwargs.get("mesh", None)
+    voxel_grid_size = kwargs.get("voxel_grid_size", None)
 
     solution_search_fraction = 1 - uncovered_search_fraction - random_search_fraction
     min_frac = min(solution_search_fraction, uncovered_search_fraction, random_search_fraction)
@@ -53,23 +55,38 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
         replace_elements = {}
         directions = []
         for i, voxel in enumerate(select_free_space):
-            distance = np.sum(np.abs(select_free_space[i] - select_block_pos[i]) / large_grid_params["voxel_size"])
-            cutoff_flag = 0
-            direction_unnormal = select_block_pos[i] - select_free_space[i]
-            direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+
+            free_space_line = generate_line(np.array(select_block_pos[i]), np.array(select_free_space[i]),
+                                            voxel_size=voxel_grid_size)
+            select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+
+            if select_free_space_furthest is not None:
+
+                distance = np.sum(np.abs(select_free_space_furthest - select_block_pos[i])
+                                  / large_grid_params["voxel_size"])
+                direction_unnormal = select_block_pos[i] - select_free_space_furthest
+                direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+
+            else:
+                distance = -1
+                direction = [0, 1, 0]
 
             while ((distance < min_cutoff)
                    or np.all(np.isclose(direction, [0, 1, 0], atol=10 ** -4))
-                   or np.all(np.isclose(direction, [0, -1, 0], atol=10 ** -4))):
+                   or np.all(np.isclose(direction, [0, -1, 0], atol=10 ** -4))
+                   or select_free_space_furthest is None):
 
-                cutoff_flag = 1
+                check = 1
                 free_space_point = rng.choice(list(free_space_points))
-                distance = np.sum(np.abs(free_space_point - select_block_pos[i]) / large_grid_params["voxel_size"])
-                direction_unnormal = select_block_pos[i] - free_space_point
+                free_space_line = generate_line(np.array(select_block_pos[i]), np.array(free_space_point),
+                                                voxel_size=voxel_grid_size)
+                select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+
+                distance = np.sum(np.abs(select_free_space_furthest - select_block_pos[i]) / large_grid_params["voxel_size"])
+                direction_unnormal = select_block_pos[i] - select_free_space_furthest
                 direction = direction_unnormal / np.linalg.norm(direction_unnormal)
 
-            if cutoff_flag == 1:
-                replace_elements[i] = free_space_point
+            replace_elements[i] = select_free_space_furthest
 
             directions.append(direction)
 
