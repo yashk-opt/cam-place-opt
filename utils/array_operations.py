@@ -152,7 +152,9 @@ def generate_infinity_norm_arrays(num, voxel_size, arr=None):
 
 @jit(nopython=True)
 def arrays_within_tolerance_numba(arr1, arr2, tolerance):
-
+    """
+    Calculates arr1 intersection arr2. Use arrays_within_tolerance_complete to return np.array
+    """
     result = []
     arr_size = arr1.shape[1]
     arr1_len = arr1.shape[0]
