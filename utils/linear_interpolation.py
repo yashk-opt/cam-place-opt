@@ -66,6 +66,9 @@ def generate_line(point_start, point_end, voxel_size=1):
 
 def find_furthest_non_intersect(line_points, mesh, free_space_points):
 
+    if len(line_points) == 1:
+        return None
+
     view = o3d.t.geometry.RaycastingScene()
     view.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(mesh))
 

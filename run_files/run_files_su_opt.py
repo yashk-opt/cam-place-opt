@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
         if sheet_name == "su_fraction":
             batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis.xlsx",
-                                      sheet_name=sheet_name).loc[187:]
+                                      sheet_name=sheet_name).loc[188:]
 
         else:
             batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis.xlsx",
