@@ -40,13 +40,8 @@ if __name__ == "__main__":
 
     for sheet_name in sheet_names:
 
-        if sheet_name == "su_fraction":
-            batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis.xlsx",
-                                      sheet_name=sheet_name).loc[188:]
-
-        else:
-            batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis.xlsx",
-                                      sheet_name=sheet_name)
+        batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis_v3.xlsx",
+                                  sheet_name=sheet_name)
 
         all_data_list = []
         for index, row in batch_run.iterrows():
@@ -60,7 +55,7 @@ if __name__ == "__main__":
 
             initial_point_seed = row["Initial Point Seed"]
 
-            camera_seed = row["Camera Seed"] * 10
+            camera_seed = row["Camera Seed"]
             camera_budget = row["Camera Budget"]
 
             model = Scene(filepath="None", obj_type="None")
@@ -216,5 +211,5 @@ if __name__ == "__main__":
 
             ])
 
-            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v2.xlsx")
+            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v3.xlsx")
             print(f"{sheet_name} Index {index} completed")
