@@ -7,7 +7,8 @@ from utils.linear_interpolation import generate_line, find_furthest_non_intersec
 def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
                             large_grid_params, large_grid_data, rng,
                             uncovered_search_fraction=1, random_search_fraction=0,
-                            solutions=None, uncovered_search_min_dist_cutoff="auto", **kwargs):
+                            solutions=None, uncovered_search_min_dist_cutoff="auto",
+                            strict_visibility=False, **kwargs):
 
     directions_per_voxel = kwargs.get("directions_per_voxel", "same")
     direction_selection_type = kwargs.get("direction_selection_type", "uniform")
@@ -56,9 +57,13 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
         directions = []
         for i, voxel in enumerate(select_free_space):
 
-            free_space_line = generate_line(np.array(select_block_pos[i]), np.array(select_free_space[i]),
-                                            voxel_size=voxel_grid_size)
-            select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+            if strict_visibility is True:
+                free_space_line = generate_line(np.array(select_block_pos[i]), np.array(select_free_space[i]),
+                                                voxel_size=voxel_grid_size)
+                select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+
+            else:
+                select_free_space_furthest = select_free_space[i]
 
             if select_free_space_furthest is not None:
 
@@ -78,9 +83,12 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
 
                 check = 1
                 free_space_point = rng.choice(list(free_space_points))
-                free_space_line = generate_line(np.array(select_block_pos[i]), np.array(free_space_point),
-                                                voxel_size=voxel_grid_size)
-                select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+                if strict_visibility is True:
+                    free_space_line = generate_line(np.array(select_block_pos[i]), np.array(free_space_point),
+                                                    voxel_size=voxel_grid_size)
+                    select_free_space_furthest = find_furthest_non_intersect(free_space_line, mesh, free_space_points)
+                else:
+                    select_free_space_furthest = free_space_point
 
                 distance = np.sum(np.abs(select_free_space_furthest - select_block_pos[i]) / large_grid_params["voxel_size"])
                 direction_unnormal = select_block_pos[i] - select_free_space_furthest
