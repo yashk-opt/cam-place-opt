@@ -90,9 +90,14 @@ def sample_uncovered_voxels(eff_num_points, num_points_axis, free_space_points,
                 else:
                     select_free_space_furthest = free_space_point
 
-                distance = np.sum(np.abs(select_free_space_furthest - select_block_pos[i]) / large_grid_params["voxel_size"])
-                direction_unnormal = select_block_pos[i] - select_free_space_furthest
-                direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+                if select_free_space_furthest is not None:
+                    distance = np.sum(np.abs(select_free_space_furthest - select_block_pos[i]) / large_grid_params["voxel_size"])
+                    direction_unnormal = select_block_pos[i] - select_free_space_furthest
+                    direction = direction_unnormal / np.linalg.norm(direction_unnormal)
+
+                else:
+                    distance = -1
+                    direction = [0, 1, 0]
 
             replace_elements[i] = select_free_space_furthest
 
