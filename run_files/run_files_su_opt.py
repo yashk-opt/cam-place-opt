@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     for sheet_name in sheet_names:
 
-        batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis_v3.xlsx",
+        batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis_v4.xlsx",
                                   sheet_name=sheet_name)
 
         all_data_list = []
@@ -52,6 +52,7 @@ if __name__ == "__main__":
 
             num_voxels_per_iter = row["Sample Voxels Per Iteration"]
             num_points_axis = row["Angles per Voxel per Axis"]
+            strict_visibility = row["Strict Visibility"]
 
             initial_point_seed = row["Initial Point Seed"]
 
@@ -131,7 +132,8 @@ if __name__ == "__main__":
                                                                        uncovered_search_fraction=uncovered_search_fraction,
                                                                        random_search_fraction=explore_fraction,
                                                                        solutions=mip.x_pa_solve,
-                                                                       mesh=model.mesh, voxel_grid_size=model.voxel_size)
+                                                                       mesh=model.mesh, voxel_grid_size=model.voxel_size,
+                                                                       strict_visibility=strict_visibility)
 
                     start = time.time()
                     if iteration == 1:
@@ -169,7 +171,7 @@ if __name__ == "__main__":
                     lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 2))
 
                     cur_best_cam = mip.x_pa_solve
-                    print(f"Index {index} Iteration {iteration} completed")
+                    print(f"{sheet_name} Index {index} Iteration {iteration} completed")
 
             total_preprocess_time = sum(preprocessing_time_list)
             total_mip_runtime = sum(mip_runtime_list)
@@ -183,7 +185,7 @@ if __name__ == "__main__":
                          total_preprocess_time, total_mip_runtime, len(model.free_space_points), mip.lp_value, mip.ip_value,
                          mip.best_dual_bound, mip.constr_num, mip.var_num, mip.node_count,
 
-                         block_size, uncovered_search_fraction, num_iterations,
+                         block_size, uncovered_search_fraction, num_iterations, strict_visibility,
 
                          total_coverage,
                          f"{preprocessing_time_list}".replace('[', '').replace(']', ''),
@@ -204,12 +206,12 @@ if __name__ == "__main__":
                 "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value",
                 "Best Dual Bound", "Constraint Count", "Variable Count", "Nodes Traversed",
 
-                "Super Voxel Size", "Uncovered Search Fraction", "Number of Iterations",
+                "Super Voxel Size", "Uncovered Search Fraction", "Number of Iterations", "Strict Visibility"
 
                 "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list",
                 "Num Voxels Covered List"
 
             ])
 
-            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v3.xlsx")
+            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v4.xlsx")
             print(f"{sheet_name} Index {index} completed")
