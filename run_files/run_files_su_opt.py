@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     for sheet_name in sheet_names:
 
-        batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis_v4.xlsx",
+        batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "su_analysis_v5.xlsx",
                                   sheet_name=sheet_name)
 
         all_data_list = []
@@ -206,12 +206,12 @@ if __name__ == "__main__":
                 "Pre-processing Time (Total)", "Runtime (Total)", "Total Free Space", "LP Value", "IP Value",
                 "Best Dual Bound", "Constraint Count", "Variable Count", "Nodes Traversed",
 
-                "Super Voxel Size", "Uncovered Search Fraction", "Number of Iterations", "Strict Visibility"
+                "Super Voxel Size", "Uncovered Search Fraction", "Number of Iterations", "Strict Visibility",
 
                 "Total Coverage (%)", "Ind. Preprocessing Times", "Ind. MIP runtimes", "Ind. Coverage list",
                 "Num Voxels Covered List"
 
             ])
 
-            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v4.xlsx")
+            batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_su_{sheet_name}_v5.xlsx")
             print(f"{sheet_name} Index {index} completed")
