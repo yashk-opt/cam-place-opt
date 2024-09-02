@@ -118,7 +118,6 @@ def segment_points(free_space_points, tolerance=10**-4):
     return segments
 
 
-
 if __name__ == "__main__":
     # Example usage:
     # matrix = np.array([
@@ -142,13 +141,13 @@ if __name__ == "__main__":
     #     y = segment_tensor(matrix, value=0)
     #     print(time.time() - start)
 
-    free_space_points = np.array([
+    free_space = np.array([
         [0.0, 0.0, 0.0], [1.000001, 0.0, 0.0], [1.000001, 1.0, 0.0],
         [2.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.000001, 1.0, 1.0], [5, 0, 1], [10, 0, 1]
     ])
 
-    segments = segment_points(free_space_points, tolerance=1e-4)
-    for i, segment in enumerate(segments):
+    segment_list = segment_points(free_space, tolerance=1e-4)
+    for i, segment in enumerate(segment_list):
         print(f"Segment {i + 1}:")
         print(np.array(segment))
 
