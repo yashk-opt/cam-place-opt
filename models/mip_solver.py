@@ -15,6 +15,7 @@ import logging
 import warnings
 import sys
 from copy import deepcopy
+import time
 
 
 class MILPModel:
@@ -27,6 +28,7 @@ class MILPModel:
         self.lp_value = None
         self.ip_value = None
         self.runtime = None
+        self.greedy_runtime = None
         self.node_count = None
         self.var_num = None
         self.constr_num = None
@@ -202,15 +204,17 @@ class MILPModel:
         self.constr_num = self.model.NumConstrs
         self.best_dual_bound = getattr(self.model, "ObjBoundC", np.nan)
 
-    def greedy_optimize(self, max_run_time, log_path=None, verbose=False, **kwargs):
+    def greedy_optimize(self, max_run_time=None, log_path=None, verbose=False, **kwargs):
 
+        greedy_time_start = time.time()
         new_V_pa = deepcopy(self.V_pa)
         new_C_pa = deepcopy(self.C_pa)
         K_left = deepcopy(self.K)
-        new_cam_possible =True
+        new_cam_possible = True
         x_pa = []
+        self.ip_value = 0
 
-        while(new_cam_possible):
+        while new_cam_possible:
 
             remove_pa = {key for (key, value) in new_C_pa.items() if value > K_left}
 
@@ -222,17 +226,19 @@ class MILPModel:
                 new_cam_possible = False
 
             else:
-                select_pa = max(self.V_pa, key=lambda pa: len(self.V_pa[pa]) / self.C_pa[pa])
+                select_pa = max(new_V_pa, key=lambda pa: len(new_V_pa[pa]) / new_C_pa[pa])
                 x_pa.append(select_pa)
                 K_left = K_left - new_C_pa[select_pa]
 
                 select_p = select_pa[:3]
                 v_cover_set = new_V_pa[select_pa]
+                self.ip_value += len(v_cover_set)
 
                 new_C_pa = {key: value for (key, value) in new_C_pa.items() if key[:3] != select_p}
                 new_V_pa = {key: value - v_cover_set  for (key, value) in new_V_pa.items() if key[:3] != select_p}
 
         self.x_pa_solve = {ele: 1 for ele in x_pa}
+        self.greedy_runtime = time.time() - greedy_time_start
 
     def post_process(self, save_solution=False, folder_path=None, load_solution_path=None, name_suffix=False,
                      greedy_heur=False):
