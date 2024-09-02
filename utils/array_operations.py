@@ -7,7 +7,7 @@ def delete_row_if_exists(array_2d, check_row, tolerance=10**-4):
 
 
 def remove_similar_rows(arr_a, arr_b, tolerance=10**-4):
-
+    """Calculates arr_a - arr_b"""
     arr_a_copy = arr_a.copy()
     for row in arr_b:
         arr_a_copy = delete_row_if_exists(arr_a_copy, row, tolerance=tolerance)
