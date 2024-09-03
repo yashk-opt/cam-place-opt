@@ -36,7 +36,7 @@ if __name__ == "__main__":
                     'Exploit Fraction', 'Voxel Perturbation Allowance',
                     'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
-    batch_run = pd.read_excel(analytics_path / "analysis_set_august_2024" / "iter_analysis.xlsx")
+    batch_run = pd.read_excel(analytics_path / "analysis_set_september_2024" / "master_batch_run_ee.xlsx")
 
     all_data_list = []
     for index, row in batch_run.iterrows():
@@ -203,5 +203,6 @@ if __name__ == "__main__":
             "Num Voxels Covered List"
         ])
 
-        batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_august_2024" / f"sols_iter.xlsx")
+        batch_runs_solns.round(3).to_excel(analytics_path / "analysis_set_september_2024" /
+                                           f"sols_ee.xlsx")
         print(f"{index} completed")
