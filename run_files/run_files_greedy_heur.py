@@ -194,7 +194,7 @@ if __name__ == "__main__":
         ])
 
         # batch_runs_solns.round(3).to_excel(batch_run_path / f"batch_run_sols_std_mip_24-05-29.xlsx")
-        batch_runs_solns.round(3).to_excel(get_project_root() / "analytics" / "analysis_set_august_2024"
+        batch_runs_solns.round(3).to_excel(get_project_root() / "analytics" / "analysis_set_september_2024"
                                            / f"batch_run_sols_std_greedy.xlsx")
 
         print(f"Index {index} completed")
