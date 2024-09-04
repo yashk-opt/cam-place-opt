@@ -1,6 +1,7 @@
 import open3d as o3d
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from utils.custom_object_functions import create_hollow_room, get_arrow, create_coordinate_axes_mesh
 from visualization.visualization_utils import visualize_list, create_voxels_subset
@@ -22,12 +23,15 @@ import os
 
 if __name__ == "__main__":
 
+    scene_name = "apartment_0_simple"
+
     project_path = get_project_root()
     data_path = get_project_data()
     analytics_path = project_path / "analytics"
 
-    scene_folder = data_path / "apartment_0"
+    scene_folder = data_path / scene_name
     scenes_list = os.listdir(scene_folder)
+    algo_folder = scene_folder / "algo_sols"
 
     batch_run_path = scene_folder
 
@@ -37,16 +41,16 @@ if __name__ == "__main__":
                     'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
     data_list = [
-        ["apartment_0", "apartment_0", 10, 2, 1, 1, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 2, 2, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 3, 3, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 4, 4, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 5, 5, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 6, 6, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 7, 7, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 8, 8, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 9, 9, 6, 0.6, 1, 30, "uniform", 10],
-        ["apartment_0", "apartment_0", 10, 2, 10, 10, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 1, 1, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 2, 2, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 3, 3, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 4, 4, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 5, 5, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 6, 6, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 7, 7, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 8, 8, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 9, 9, 6, 0.6, 1, 30, "uniform", 10],
+        [scene_name, scene_name, 10, 2, 10, 10, 6, 0.6, 1, 30, "uniform", 10],
                  ]
     batch_run = pd.DataFrame(data_list, columns=data_columns)
 
@@ -73,15 +77,9 @@ if __name__ == "__main__":
         model = Scene(filepath="None", obj_type="None")
         model.init_object = "mesh"
 
-        # model.pcd = o3d.io.read_point_cloud(str(scene_folder / scene_name / f'{scene_name}_pcd.pcd'))
-        # model.mesh = o3d.io.read_triangle_mesh(str(scene_folder / scene_name / f'{scene_name}_mesh.ply'))
-        # model.voxel_grid = o3d.io.read_voxel_grid(str(scene_folder / scene_name / f'{scene_name}_voxel_grid.ply'))
-        # model.free_space_points = np.load(scene_folder / scene_name / f'{scene_name}_free_space.npy', allow_pickle=True)
-
         model.mesh = o3d.io.read_triangle_mesh(str(scene_folder / f'{scene_name}_mesh.ply'))
         model.voxel_grid = o3d.io.read_voxel_grid(str(scene_folder / f'{scene_name}_voxel_grid.ply'))
         model.free_space_points = np.load(scene_folder / f'{scene_name}_free_space.npy', allow_pickle=True)
-        # model.voxel_tensor = np.load(scene_folder / scene_name / f'{scene_name}_voxel_tensor.npy', allow_pickle=True)
 
         model.voxel_grid_dim = model.calc_voxel_grid_dim()
         model.voxel_size = model.voxel_grid.voxel_size
@@ -172,6 +170,13 @@ if __name__ == "__main__":
                 else:
                     mip.post_process(save_solution=False)
 
+                    directory_path = Path(f"{str(algo_folder)}_{camera_seed}")
+                    directory_path.mkdir(parents=True, exist_ok=True)
+                    with open(directory_path / f'algo_sols_solve_{iteration}.pkl', 'wb') as file:
+                        pickle.dump(set(mip.x_pa_solve.keys()), file)
+                    with open(directory_path / f'algo_sols_all_{iteration}.pkl', 'wb') as file:
+                        pickle.dump(set(mip.x_pa.keys()), file)
+
                 preprocessing_time_list.append(round(processing_time, 3))
                 mip_runtime_list.append(round(mip.runtime, 3))
                 coverage_list.append(round(mip.ip_value / len(model.free_space_points), 3))
@@ -187,8 +192,6 @@ if __name__ == "__main__":
         total_coverage = coverage_list[-1]
 
         mip.post_process(save_solution=False, folder_path=scene_folder, name_suffix=f"-final")
-
-        mip.visualize()
 
         data_list = [width, height, depth, voxel_size, num_walls, room_seed, wall_edge_ratio, wall_orient,
                      num_voxels_per_iter, num_points_axis, initial_point_seed, camera_seed, camera_budget, model_name,
@@ -228,5 +231,5 @@ if __name__ == "__main__":
             "Num Voxels Covered List"
         ])
 
-        # batch_runs_solns.round(3).to_excel(analytics_path / "case_study_runs" / f"sols_iter.xlsx")
+        batch_runs_solns.round(3).to_excel(scene_folder / f"case_study_solutions_ee.xlsx")
         print(f"{index} completed")
