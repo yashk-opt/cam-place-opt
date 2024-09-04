@@ -36,7 +36,18 @@ if __name__ == "__main__":
                     'Exploit Fraction', 'Voxel Perturbation Allowance',
                     'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
-    data_list = [["apartment_0", "apartment_0", 10, 2, 1, 1, 6, 0.6, 1, 30, "uniform", 10]]
+    data_list = [
+        ["apartment_0", "apartment_0", 10, 2, 1, 1, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 2, 2, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 3, 3, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 4, 4, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 5, 5, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 6, 6, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 7, 7, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 8, 8, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 9, 9, 6, 0.6, 1, 30, "uniform", 10],
+        ["apartment_0", "apartment_0", 10, 2, 10, 10, 6, 0.6, 1, 30, "uniform", 10],
+                 ]
     batch_run = pd.DataFrame(data_list, columns=data_columns)
 
     # batch_run = pd.read_excel(analytics_path / "case_study_runs" / "iter_analysis.xlsx")
