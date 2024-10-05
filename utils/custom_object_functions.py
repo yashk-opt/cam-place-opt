@@ -145,3 +145,67 @@ def filter_lines_parallel_to_axes(line_set):
     filtered_line_set.lines = o3d.utility.Vector2iVector(filtered_lines)
 
     return filtered_line_set
+
+
+def create_cube_lineset(center, block_size):
+    """
+    Create a cube lineset centered at the given coordinates.
+
+    Parameters:
+    center (tuple): The (x, y, z) coordinates for the center of the cube.
+    block_size (int): The size of each edge of the cube.
+
+    Returns:
+    cube_lineset (o3d.geometry.LineSet): A LineSet object representing the wireframe of the cube.
+    """
+    # Half the block size to get proper cube from center
+    half_size = block_size / 2.0
+
+    # Define the 8 vertices of the cube
+    vertices = np.array([
+        [center[0] - half_size, center[1] - half_size, center[2] - half_size],
+        [center[0] + half_size, center[1] - half_size, center[2] - half_size],
+        [center[0] + half_size, center[1] + half_size, center[2] - half_size],
+        [center[0] - half_size, center[1] + half_size, center[2] - half_size],
+        [center[0] - half_size, center[1] - half_size, center[2] + half_size],
+        [center[0] + half_size, center[1] - half_size, center[2] + half_size],
+        [center[0] + half_size, center[1] + half_size, center[2] + half_size],
+        [center[0] - half_size, center[1] + half_size, center[2] + half_size]
+    ])
+
+    # Define the 12 edges of the cube (pairs of vertices)
+    edges = np.array([
+        [0, 1], [1, 2], [2, 3], [3, 0],  # Bottom face
+        [4, 5], [5, 6], [6, 7], [7, 4],  # Top face
+        [0, 4], [1, 5], [2, 6], [3, 7]  # Side edges
+    ])
+
+    # Create LineSet object
+    line_set = o3d.geometry.LineSet()
+    line_set.points = o3d.utility.Vector3dVector(vertices)
+    line_set.lines = o3d.utility.Vector2iVector(edges)
+
+    # Optional: color the edges (here, all edges are white)
+    colors = [[0, 0, 0] for _ in range(len(edges))]
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+
+    return line_set
+
+
+def extract_voxel_linesets(voxel_collection_count, block_size):
+    """
+    Create linesets for all the cubes in the given voxel collection.
+
+    Parameters:
+    voxel_collection_count (dict): Dictionary with keys as 3D coordinates (tuples) and values as integers.
+    block_size (int): The size of each cube's side length.
+
+    Returns:
+    linesets (list): List of all the LineSet objects representing the cubes.
+    """
+    linesets = []
+    for coord in voxel_collection_count.keys():
+        lineset = create_cube_lineset(coord, block_size)
+        linesets.append(lineset)
+
+    return linesets
