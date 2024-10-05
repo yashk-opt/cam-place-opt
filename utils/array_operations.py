@@ -179,3 +179,29 @@ def arrays_within_tolerance_numba(arr1, arr2, tolerance):
 def arrays_within_tolerance_complete(arr1, arr2, tolerance):
     result = arrays_within_tolerance_numba(arr1, arr2, tolerance)
     return np.array(result)
+
+
+@jit(nopython=True)
+def arrays_within_tolerance_indices_numba(arr1, arr2, tolerance):
+    """
+    Calculates arr1 intersection arr2. Only appends indices of arr1
+    """
+    result = []
+    arr_size = arr1.shape[1]
+    arr1_len = arr1.shape[0]
+    arr2_len = arr2.shape[0]
+
+    for i in range(arr1_len):
+
+        for j in range(arr2_len):
+            within_tolerance = True
+            for k in range(arr_size):
+                if np.abs(arr1[i, k] - arr2[j, k]) > tolerance:
+                    within_tolerance = False
+                    break
+
+            if within_tolerance == True:
+                result.append(i)
+                break
+
+    return result
