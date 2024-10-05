@@ -24,30 +24,33 @@ import os
 
 if __name__ == "__main__":
 
+    root_path = get_project_root()
     data_path = get_project_data()
-    scene_folder = data_path / "room_walls"
+    scene_folder = data_path / "apartment_0_simple"
     scenes_list = os.listdir(scene_folder)
-
-
-    batch_run_path = scene_folder / "Algo Visualization SU"
+    seed_folder = root_path / "analytics" / "case_study_runs" / "algo_sols_su_7_True"
 
     data_columns = ['Folder Name', 'Scene Name', 'Sample Voxels Per Iteration',
                     'Angles per Voxel per Axis', 'Camera Seed', 'Camera Budget',
                     'Exploit Fraction', 'Voxel Perturbation Allowance',
                     'Angle Perturbation Allowance', 'Angle Selection', 'Number of Iterations']
 
-    batch_run = pd.read_excel(scene_folder / "Algo Visualization SU" / "model_runs_su.xlsx")
-    scene_name = batch_run.iloc[0]["Scene Name"]
-    camera_budget = batch_run.iloc[0]["Camera Budget"]
+    batch_run = pd.read_excel(root_path / "analytics" / "analysis_set_september_2024"
+                              / "model-runs-apartment_0-su.xlsx")
+
+    scene_name = "apartment_0_simple"
+    camera_budget = batch_run.iloc[1]["Camera Budget"]
+    # camera_budget = 6
+    num_iterations = batch_run.iloc[1]["Number of Iterations"]
 
     model = Scene(filepath="None", obj_type="None")
     model.init_object = "mesh"
 
-    model.pcd = o3d.io.read_point_cloud(str(scene_folder / scene_name / f'{scene_name}_pcd.pcd'))
-    model.mesh = o3d.io.read_triangle_mesh(str(scene_folder / scene_name / f'{scene_name}_mesh.ply'))
-    model.voxel_grid = o3d.io.read_voxel_grid(str(scene_folder / scene_name / f'{scene_name}_voxel_grid.ply'))
-    model.free_space_points = np.load(scene_folder / scene_name / f'{scene_name}_free_space.npy', allow_pickle=True)
-    model.voxel_tensor = np.load(scene_folder / scene_name / f'{scene_name}_voxel_tensor.npy', allow_pickle=True)
+    # model.pcd = o3d.io.read_point_cloud(str(scene_folder / scene_name / f'{scene_name}_pcd.pcd'))
+    model.mesh = o3d.io.read_triangle_mesh(str(scene_folder / f'{scene_name}_mesh.ply'))
+    model.voxel_grid = o3d.io.read_voxel_grid(str(scene_folder / f'{scene_name}_voxel_grid.ply'))
+    model.free_space_points = np.load(scene_folder / f'{scene_name}_free_space.npy', allow_pickle=True)
+    model.voxel_tensor = np.load(scene_folder / f'{scene_name}_voxel_tensor.npy', allow_pickle=True)
 
     model.voxel_grid_dim = model.calc_voxel_grid_dim()
     model.voxel_size = model.voxel_grid.voxel_size
@@ -79,12 +82,12 @@ if __name__ == "__main__":
 
     voxel_direction_dict = {}
 
-    for iteration in range(1, 5+1):
+    for iteration in range(1, num_iterations + 1):
 
         # load data
-        with open(batch_run_path / f'algo_sols_solve_{iteration}.pkl', 'rb') as file:
+        with open(seed_folder / f'algo_sols_solve_{iteration}.pkl', 'rb') as file:
             x_pa_solve[iteration] = list(pickle.load(file))
-        with open(batch_run_path / f'algo_sols_all_{iteration}.pkl', 'rb') as file:
+        with open(seed_folder / f'algo_sols_all_{iteration}.pkl', 'rb') as file:
             x_pa[iteration] = list(pickle.load(file))
 
         # load camera data
@@ -154,7 +157,7 @@ if __name__ == "__main__":
                             exploit_voxels[iteration][voxel] = excluded_direction_set
 
     # Visualization of elements
-    iteration = 1
+    iteration = 10
     view_list = [model.mesh]
 
     for voxel in explore_voxels[iteration]:
@@ -182,8 +185,8 @@ if __name__ == "__main__":
                 arrow.paint_uniform_color(np.array([255, 69, 0])/255)
                 view_list.append(arrow)
 
-    line_set = filter_lines_parallel_to_axes(develop_mesh_line_set(model.mesh))
-    view_list.append(line_set)
+    # line_set = filter_lines_parallel_to_axes(develop_mesh_line_set(model.mesh))
+    # view_list.append(line_set)
 
     for count in range(1, camera_budget + 1):
         view_list.append(camera_voxel[iteration][count])
@@ -210,4 +213,45 @@ if __name__ == "__main__":
     view_list.append(viewable_points_vis[iteration])
     view_list.append(unviewable_points)
     visualize_list(view_list)
+    print(1)
+
+    # a dictionary for each camera's position, angle and set of voxels
+
+    camera_voxel_dict = {}
+    for camera_orient in x_pa_solve[iteration]:
+
+        camera = Camera()
+        cam_center = tuple(np.array(camera_orient[:3]) + np.array(camera_orient[-3:]))
+        camera.set_params(fov_deg=90, center=cam_center, eye=camera_orient[:3], width_px=640, height_px=480,
+                          up=(0, 1, 0))
+
+        new_check = set(tuple(sublist) for sublist in np.round(calculate_camera_view(model, camera)).astype(int))
+
+        # camera_voxel_dict[camera_orient] = np.array(list(new_check))
+        camera_voxel_dict[camera_orient] = new_check
+
+    unique_cam_dict = {}
+    cam_list = list(camera_voxel_dict.keys())
+    for i, cam in enumerate(cam_list):
+        cam_set = camera_voxel_dict[cam]
+        cam_set2 = set()
+        for j, cam2 in enumerate(cam_list):
+            # cam_set2 = np.empty((0, 3))
+            if i != j:
+                print(i, j)
+                # cam_set2 = np.vstack([cam_set2, camera_voxel_dict[cam2]])
+                cam_set2 = cam_set2 | camera_voxel_dict[cam2]
+            # cam_set2 = np.round(cam_set2)
+
+        unique_cam_dict[cam] = cam_set - cam_set2
+        # remove_similar_rows(cam_set, cam_set2, tolerance=10**-2)
+
+    new_view_list = [model.mesh]
+    new_view_list.append(create_voxels_subset(model.voxel_grid,
+                         np.array(x_pa_solve[iteration][0][:3]).reshape(1, -1),
+                         voxel_size=model.voxel_size / 2,
+                         object_type="point", color="black"))
+    visualize_list(new_view_list)
+
+
     print("Completed Solution: 1")

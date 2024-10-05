@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     data_columns = ["Folder Name", "Scene Name", "Sample Voxels Per Iteration", "Angles per Voxel per Axis",
                     "Initial Point Seed", "Camera Seed", "Camera Budget", "Super Voxel Size",
-                    "Uncovered Search Fraction", "Angle Selection", "Number of Iterations"]
+                    "Uncovered Search Fraction", "Angle Selection", "Number of Iterations", "Strict Visibility"]
 
     sheet_names = ["su_fraction", "num_iter", "supervoxel_size"]
 

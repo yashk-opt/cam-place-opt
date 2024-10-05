@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     scene_folder = data_path / scene_name
     scenes_list = os.listdir(scene_folder)
-    algo_folder = scene_folder / "algo_sols"
+    algo_folder = scene_folder / "algo_sols_su"
 
     batch_run_path = scene_folder
 
@@ -53,7 +53,6 @@ if __name__ == "__main__":
         [scene_name, scene_name, 10, 2, 10, 10, 6, 0.6, 1, 30, "uniform", 10],
                  ]
     batch_run = pd.DataFrame(data_list, columns=data_columns)
-
     # batch_run = pd.read_excel(analytics_path / "case_study_runs" / "iter_analysis.xlsx")
 
     all_data_list = []
@@ -184,7 +183,6 @@ if __name__ == "__main__":
                 lp_coverage_list.append(round(mip.lp_value / len(model.free_space_points), 3))
 
                 cur_best_cam = mip.x_pa_solve
-
                 print(f"Index {index} Iteration {iteration} completed")
 
         total_preprocess_time = sum(preprocessing_time_list)

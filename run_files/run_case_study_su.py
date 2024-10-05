@@ -93,6 +93,7 @@ if __name__ == "__main__":
         model.voxel_grid = o3d.io.read_voxel_grid(str(scene_folder / f'{scene_name}_voxel_grid.ply'))
         model.free_space_points = np.load(scene_folder / f'{scene_name}_free_space.npy', allow_pickle=True)
 
+
         model.voxel_grid_dim = model.calc_voxel_grid_dim()
         model.voxel_size = model.voxel_grid.voxel_size
 
