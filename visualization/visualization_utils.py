@@ -1,17 +1,32 @@
 import open3d as o3d
 import numpy as np
-
+import json
 
 def visualize_list(scene_list, **kwargs):
 
+    print("press p for screencamera.json, d for depthcapture.json, o for renderoption.json. Just use d")
     vis = o3d.visualization.Visualizer()
-    window_name = kwargs.get("window_name", "untitled")
-    width = kwargs.get("window_width", 800)
-    height = kwargs.get("window_height", 800)
-    vis.create_window(window_name=window_name, width=width, height=height)
+    json_path = kwargs.get("json_path", -1)
+
+    if json_path == -1:
+        window_name = kwargs.get("window_name", "untitled")
+        width = kwargs.get("window_width", 800)
+        height = kwargs.get("window_height", 800)
+        vis.create_window(window_name=window_name, width=width, height=height)
+
+    else:
+        with open(json_path, 'r') as file:
+            cam_dict = json.load(file)
+        vis.create_window(height=cam_dict["intrinsic"]["height"], width=cam_dict["intrinsic"]["width"])
+        ctr = vis.get_view_control()
+        param = o3d.io.read_pinhole_camera_parameters(json_path)
 
     for scene in scene_list:
         vis.add_geometry(scene)
+
+    if json_path != -1:
+        ctr.convert_from_pinhole_camera_parameters(param, True)
+        vis.get_render_option().load_from_json(json_path)
 
     vis.run()
     vis.destroy_window()
