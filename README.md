@@ -13,4 +13,4 @@ If you find this codebase or algorithmic framework useful in your research, plea
 }
 ```
 
-An official citation file is also available in this repository via [CITATION.cff](./CITATION.cff).
+An official citation file for the codebase is available in this repository via [CITATION.cff](./CITATION.cff).
