@@ -9,21 +9,3 @@ version: 1.0.0
 doi: 10.5281/zenodo.23142925
 date-released: 2024-10-04
 url: "https://github.com/yashk-opt/cam-place-opt"
-preferred-citation:
-  type: article
-  authors:
-    - family-names: "Kumar"
-      given-names: "Yash"
-      orcid: "https://orcid.org/0000-0002-1870-575X"
-    - family-names: "Bollapragada"
-      given-names: "Raghu"
-    - family-names: "Leibowicz"
-      given-names: "Benjamin D."
-  title: "Efficient mathematical programming formulation and algorithmic framework for optimal camera placement"
-  journal: "Computers & Operations Research"
-  pages: "107541"
-  date-published: "2026-05-22"
-  identifiers:
-    - type: doi
-      value: "10.1016/j.cor.2026.107541"
-  doi: "10.1016/j.cor.2026.107541"
