@@ -6,6 +6,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-1870-575X"
 title: "cam-place-opt"
 version: 1.0.0
+doi: 10.5281/zenodo.23142925
 date-released: 2024-10-04
 url: "https://github.com/yashk-opt/cam-place-opt"
 preferred-citation:
