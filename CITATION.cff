@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Kumar"
+    given-names: "Yash"
+    orcid: "https://orcid.org/0000-0002-1870-575X"
+title: "cam-place-opt"
+version: 1.0.0
+date-released: 2024-10-04
+url: "https://github.com/yashk-opt/cam-place-opt"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Kumar"
+      given-names: "Yash"
+    - family-names: "Bollapragada"
+      given-names: "Raghu"
+    - family-names: "Leibowicz"
+      given-names: "Benjamin D."
+  title: "Efficient mathematical programming formulation and algorithmic framework for optimal camera placement"
+  journal: "Computers & Operations Research"
+  year: 2026
