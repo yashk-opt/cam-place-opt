@@ -21,6 +21,9 @@ preferred-citation:
       given-names: "Benjamin D."
   title: "Efficient mathematical programming formulation and algorithmic framework for optimal camera placement"
   journal: "Computers & Operations Research"
-  doi: "10.1016/j.cor.2026.107541"
+  pages: "107541"
   date-published: "2026-05-22"
-  articlenumber: "107541"
+  identifiers:
+    - type: doi
+      value: "10.1016/j.cor.2026.107541"
+  doi: "10.1016/j.cor.2026.107541"
